@@ -1,21 +1,20 @@
-# 抖音支付 Python 服务端 SDK (douyinpay-python)
+# 抖音支付 Python 服务端 SDK (byted-douyinpay-python)
 
 > 官方抖音支付服务端 Python SDK，支持 **RSA + SM2 双签名算法**、**AES-GCM + SM4-CBC 双加密算法**、单证书/自动证书四种初始化模式。
 
-[![PyPI](https://img.shields.io/pypi/v/douyinpay-python.svg)](https://pypi.org/project/douyinpay-python/)
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://pypi.org/project/douyinpay-python/)
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 
 ## 安装
 
 ```bash
-pip install douyinpay-python
+pip install byted-douyinpay-python
 ```
 
 或在 `requirements.txt` 中固定：
 
 ```txt
-douyinpay-python>=1.0.0
+byted-douyinpay-python>=1.0.0,<2.0.0
 ```
 
 ## 功能概览
