@@ -2,11 +2,11 @@ import os, sys, base64
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import pytest
-from douyinpay.crypto.sm4 import (
+from bytedance.douyinpay.crypto.sm4 import (
     sm4_encrypt, sm4_decrypt, Sm4CbcEncryptor,
     _pkcs5_pad, _pkcs5_unpad,
 )
-from douyinpay.errors import DouYinPayError
+from bytedance.douyinpay.errors import DouYinPayError
 
 
 TEST_KEY_16 = b"0123456789ABCDEF"

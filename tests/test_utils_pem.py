@@ -3,7 +3,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
-from douyinpay.utils.pem import (
+from bytedance.douyinpay.utils.pem import (
     read_key_data, is_pem_certificate,
     get_certificate_serial_number, add_certificate,
 )

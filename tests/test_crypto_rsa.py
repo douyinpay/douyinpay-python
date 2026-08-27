@@ -3,7 +3,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
-from douyinpay.crypto.rsa import (
+from bytedance.douyinpay.crypto.rsa import (
     load_rsa_private_key, load_rsa_public_key,
     rsa_sign, rsa_verify, RsaSigner,
 )

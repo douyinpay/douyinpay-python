@@ -3,7 +3,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from gmssl import sm2 as gmssl_sm2, func
 
-from douyinpay.crypto.sm2 import (
+from bytedance.douyinpay.crypto.sm2 import (
     Sm2Signer, load_sm2_private_key, load_sm2_public_key,
     sm2_sign, sm2_verify,
 )

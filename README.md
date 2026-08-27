@@ -1,4 +1,4 @@
-# 抖音支付 Python 服务端 SDK (byted-douyinpay-python)
+# 抖音支付 Python 服务端 SDK (bytedance.douyinpay)
 
 > 官方抖音支付服务端 Python SDK，支持 **RSA + SM2 双签名算法**、**AES-GCM + SM4-CBC 双加密算法**、单证书/自动证书四种初始化模式。
 
@@ -8,13 +8,13 @@
 ## 安装
 
 ```bash
-pip install byted-douyinpay-python
+pip install bytedance.douyinpay
 ```
 
 或在 `requirements.txt` 中固定：
 
 ```txt
-byted-douyinpay-python>=1.0.0,<2.0.0
+bytedance.douyinpay>=1.0.0,<2.0.0
 ```
 
 ## 功能概览
@@ -40,7 +40,7 @@ byted-douyinpay-python>=1.0.0,<2.0.0
 ### RSA 单证书模式
 
 ```python
-import douyinpay
+from bytedance import douyinpay
 
 sdk = douyinpay.create_rsa_client(
     mchid="80001234567",
@@ -68,7 +68,7 @@ print(resp.status_code, resp.data)
 ### RSA 自动证书模式（推荐）
 
 ```python
-import douyinpay
+from bytedance import douyinpay
 
 sdk = douyinpay.create_auto_rsa_client(
     mchid="80001234567",
@@ -86,7 +86,7 @@ finally:
 ### SM2 国密模式
 
 ```python
-import douyinpay
+from bytedance import douyinpay
 
 sdk = douyinpay.create_sm2_client(
     mchid="80001234567",
@@ -101,7 +101,7 @@ sdk = douyinpay.create_sm2_client(
 
 ```python
 from flask import Flask, request, jsonify
-import douyinpay
+from bytedance import douyinpay
 
 app = Flask(__name__)
 

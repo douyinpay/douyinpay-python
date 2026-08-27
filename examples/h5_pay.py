@@ -1,5 +1,5 @@
 import os
-import douyinpay
+from bytedance import douyinpay
 
 MCHID = os.getenv("DOUYINPAY_MCHID", "")
 APPID = os.getenv("DOUYINPAY_APPID", "")
