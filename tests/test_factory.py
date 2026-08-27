@@ -5,13 +5,13 @@ FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 import pytest
 import httpx
-from douyinpay.factory import (
+from bytedance.douyinpay.factory import (
     create_rsa_client, create_auto_rsa_client, create_auto_rsa_client_with_manager,
     create_sm2_client, create_auto_sm2_client,
     create_client, create_auto_client,
 )
-from douyinpay.constants import SignType, EncryptType, SdkAgentType
-from douyinpay.errors import DouYinPayInvalidArgumentError
+from bytedance.douyinpay.constants import SignType, EncryptType, SdkAgentType
+from bytedance.douyinpay.errors import DouYinPayInvalidArgumentError
 
 
 PRIV_PATH = os.path.join(FIXTURES, "rsa_merchant_key.pem")
@@ -50,7 +50,7 @@ def test_create_rsa_client_rejects_missing_mchid():
 
 
 def test_create_rsa_client_rejects_cert_contains_merchant_serial():
-    from douyinpay.utils.pem import get_certificate_serial_number
+    from bytedance.douyinpay.utils.pem import get_certificate_serial_number
     plat_serial = get_certificate_serial_number(CERT_PATH)
     with pytest.raises(DouYinPayInvalidArgumentError):
         create_rsa_client("mch1", plat_serial, open(PRIV_PATH).read(), open(CERT_PATH).read())
@@ -87,7 +87,7 @@ def test_create_sm2_client_rejects_wrong_encrypt_pair():
 
 def test_create_auto_rsa_requires_encrypt_key(httpx_mock):
     httpx_mock.add_response(status_code=200, json={"certificates": []})
-    from douyinpay.errors import DouYinPayCertificateError
+    from bytedance.douyinpay.errors import DouYinPayCertificateError
     c = None
     try:
         try:

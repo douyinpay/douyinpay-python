@@ -1,7 +1,7 @@
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from douyinpay.utils.http import (
+from bytedance.douyinpay.utils.http import (
     normalize_base_url, join_url, append_query, request_target_from_url,
     header_value, buffer_to_str,
 )

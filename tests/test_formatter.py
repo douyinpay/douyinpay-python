@@ -3,11 +3,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import re
 import time
-from douyinpay.formatter import (
+from bytedance.douyinpay.formatter import (
     generate_nonce, generate_timestamp, build_authorization,
     build_request_sign_message, build_response_verify_message,
 )
-from douyinpay.constants import DEFAULT_NONCE_SIZE, AUTHORIZATION_TYPE
+from bytedance.douyinpay.constants import DEFAULT_NONCE_SIZE, AUTHORIZATION_TYPE
 
 
 def test_generate_nonce_length():

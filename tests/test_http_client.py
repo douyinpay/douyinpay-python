@@ -10,15 +10,15 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa as crypto_rsa
 from cryptography.x509.oid import NameOID
-from douyinpay.config import DouYinPayConfig
-from douyinpay.constants import SignType, EncryptType, Headers, SdkAgentType
-from douyinpay.version import USER_AGENT, build_sdk_agent
-from douyinpay.http_client import HttpClient
-from douyinpay.factory import create_rsa_client
-from douyinpay.crypto.rsa import load_rsa_private_key, load_rsa_public_key, rsa_sign, rsa_verify
-from douyinpay.utils.pem import get_certificate_serial_number
-from douyinpay.utils.http import request_target_from_url
-from douyinpay.formatter import build_request_sign_message, build_response_verify_message
+from bytedance.douyinpay.config import DouYinPayConfig
+from bytedance.douyinpay.constants import SignType, EncryptType, Headers, SdkAgentType
+from bytedance.douyinpay.version import USER_AGENT, build_sdk_agent
+from bytedance.douyinpay.http_client import HttpClient
+from bytedance.douyinpay.factory import create_rsa_client
+from bytedance.douyinpay.crypto.rsa import load_rsa_private_key, load_rsa_public_key, rsa_sign, rsa_verify
+from bytedance.douyinpay.utils.pem import get_certificate_serial_number
+from bytedance.douyinpay.utils.http import request_target_from_url
+from bytedance.douyinpay.formatter import build_request_sign_message, build_response_verify_message
 
 
 PRIV_PATH = os.path.join(FIXTURES, "rsa_merchant_key.pem")

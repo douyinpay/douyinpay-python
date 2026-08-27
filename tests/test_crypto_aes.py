@@ -2,9 +2,9 @@ import os, sys, base64
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import pytest
-from douyinpay.crypto.aes import aes_encrypt, aes_decrypt, AesGcmEncryptor, _key_bytes
-from douyinpay.errors import DouYinPayError
-from douyinpay.constants import ERR_AES_KEY_LENGTH
+from bytedance.douyinpay.crypto.aes import aes_encrypt, aes_decrypt, AesGcmEncryptor, _key_bytes
+from bytedance.douyinpay.errors import DouYinPayError
+from bytedance.douyinpay.constants import ERR_AES_KEY_LENGTH
 
 
 TEST_KEY_32 = b"a" * 32

@@ -5,14 +5,14 @@ FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 import pytest
 import httpx
-from douyinpay.config import DouYinPayConfig
-from douyinpay.constants import SignType, EncryptType, GET_PLATFORM_CERTS_PATH, Headers
-from douyinpay.certificates import AutoCertificateManager, download_platform_certificates
-from douyinpay.crypto.aes import aes_encrypt
-from douyinpay.crypto.sm4 import sm4_encrypt
-from douyinpay.utils.pem import get_certificate_serial_number
-from douyinpay.crypto.rsa import load_rsa_private_key, rsa_sign
-from douyinpay.formatter import build_response_verify_message
+from bytedance.douyinpay.config import DouYinPayConfig
+from bytedance.douyinpay.constants import SignType, EncryptType, GET_PLATFORM_CERTS_PATH, Headers
+from bytedance.douyinpay.certificates import AutoCertificateManager, download_platform_certificates
+from bytedance.douyinpay.crypto.aes import aes_encrypt
+from bytedance.douyinpay.crypto.sm4 import sm4_encrypt
+from bytedance.douyinpay.utils.pem import get_certificate_serial_number
+from bytedance.douyinpay.crypto.rsa import load_rsa_private_key, rsa_sign
+from bytedance.douyinpay.formatter import build_response_verify_message
 
 
 PRIV_PATH = os.path.join(FIXTURES, "rsa_merchant_key.pem")

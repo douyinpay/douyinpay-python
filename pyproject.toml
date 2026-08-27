@@ -3,12 +3,12 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "byted-douyinpay-python"
+name = "bytedance.douyinpay"
 version = "1.0.0"
 description = "Douyin Pay Python Server SDK - 抖音支付服务端 Python SDK，支持 RSA/SM2 双签名算法、AES/SM4 双加密算法"
 readme = "README.md"
 requires-python = ">=3.8,<4.0"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 authors = [
     { name = "douyinpay" }
 ]
@@ -16,7 +16,6 @@ keywords = ["douyinpay", "抖音支付", "payment", "sdk", "sm2", "sm4", "国密
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
@@ -43,12 +42,12 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["douyinpay*"]
+include = ["bytedance", "bytedance.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --cov=douyinpay --cov-report=term-missing"
+addopts = "-v --cov=bytedance.douyinpay --cov-report=term-missing"
 
 [tool.ruff]
 line-length = 120

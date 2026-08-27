@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from douyinpay.version import SDK_VERSION, SDK_LANG, SDK_LANG_VERSION, build_sdk_agent, USER_AGENT
+from bytedance.douyinpay.version import SDK_VERSION, SDK_LANG, SDK_LANG_VERSION, build_sdk_agent, USER_AGENT
 
 
 FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')

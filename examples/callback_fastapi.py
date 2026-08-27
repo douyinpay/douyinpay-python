@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
-import douyinpay
+from bytedance import douyinpay
 
 app = FastAPI(title="抖音支付回调示例")
 
@@ -11,7 +11,7 @@ SIGN_TYPE = os.getenv("DOUYINPAY_SIGN_TYPE", douyinpay.SignType.RSA)
 
 _certs = {}
 if PLATFORM_CERT_PATH:
-    from douyinpay.utils.pem import read_key_data, get_certificate_serial_number, add_certificate
+    from bytedance.douyinpay.utils.pem import read_key_data, get_certificate_serial_number, add_certificate
     pem_bytes = read_key_data(PLATFORM_CERT_PATH)
     serial = get_certificate_serial_number(pem_bytes)
     add_certificate(_certs, pem_bytes, serial)

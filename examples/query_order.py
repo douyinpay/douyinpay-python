@@ -1,6 +1,6 @@
 import os
 from urllib.parse import quote
-import douyinpay
+from bytedance import douyinpay
 
 MCHID = os.getenv("DOUYINPAY_MCHID", "")
 MCH_SERIAL = os.getenv("DOUYINPAY_MCH_SERIAL", "")

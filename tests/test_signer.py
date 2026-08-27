@@ -4,12 +4,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 import pytest
-from douyinpay.signer import sign_request, verify_response, create_signer
-from douyinpay.crypto.rsa import load_rsa_private_key, load_rsa_public_key, rsa_sign
-from douyinpay.constants import SignType, Headers, ERR_RES_HEADERS_INCOMPLETE
-from douyinpay.errors import DouYinPaySignatureError
-from douyinpay.utils.pem import get_certificate_serial_number
-from douyinpay.formatter import build_response_verify_message
+from bytedance.douyinpay.signer import sign_request, verify_response, create_signer
+from bytedance.douyinpay.crypto.rsa import load_rsa_private_key, load_rsa_public_key, rsa_sign
+from bytedance.douyinpay.constants import SignType, Headers, ERR_RES_HEADERS_INCOMPLETE
+from bytedance.douyinpay.errors import DouYinPaySignatureError
+from bytedance.douyinpay.utils.pem import get_certificate_serial_number
+from bytedance.douyinpay.formatter import build_response_verify_message
 
 
 PRIV_PATH = os.path.join(FIXTURES, "rsa_merchant_key.pem")
