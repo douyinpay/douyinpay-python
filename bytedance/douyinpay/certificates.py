@@ -2,20 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import threading
-import time
 from dataclasses import dataclass, replace
 from typing import Dict, List, Optional
 
 from .config import DouYinPayConfig, CertificateProvider, KeyLike
 from .constants import (
     GET_PLATFORM_CERTS_PATH,
-    EncryptType,
     DEFAULT_REFRESH_INTERVAL_SEC,
 )
 from .errors import DouYinPayCertificateError
-from .utils.pem import add_certificate, read_key_data
+from .utils.pem import add_certificate
 from .crypto.aes import aes_decrypt
-from .crypto.sm4 import sm4_decrypt
 
 
 @dataclass
@@ -47,21 +44,12 @@ def download_platform_certificates(
     certificates: List[DownloadedCertificate] = []
     for item in resp.data.get("certificates", []):
         encrypted = item.get("encrypt_certificate") or {}
-        algo = (encrypted.get("algorithm") or "").upper()
-        if "SM4" in algo or config.encrypt_type == EncryptType.SM4:
-            plaintext = sm4_decrypt(
-                encrypted["cipher_text"],
-                config.encrypt_key or "",
-                encrypted.get("nonce", ""),
-                encrypted.get("associated_data", ""),
-            )
-        else:
-            plaintext = aes_decrypt(
-                encrypted["cipher_text"],
-                config.encrypt_key or "",
-                encrypted.get("nonce", ""),
-                encrypted.get("associated_data", ""),
-            )
+        plaintext = aes_decrypt(
+            encrypted["cipher_text"],
+            config.encrypt_key or "",
+            encrypted.get("nonce", ""),
+            encrypted.get("associated_data", ""),
+        )
         certificates.append(DownloadedCertificate(
             serial_no=item.get("cert_no") or item.get("serial_no") or "",
             certificate=plaintext,

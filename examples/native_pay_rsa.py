@@ -37,7 +37,7 @@ def main():
         "notify_url": os.getenv("DOUYINPAY_NOTIFY_URL", "https://example.com/callback"),
     }
 
-    resp = sdk.path("/v1/trade/transactions/native").post(req_data)
+    resp = sdk.services.native_pay.prepay(req_data)
     print("Native支付下单成功:")
     print(f"  status_code: {resp.status_code}")
     print(f"  data: {resp.data}")

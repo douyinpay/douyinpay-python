@@ -3,14 +3,13 @@
 
 import json
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, Generic, TypeVar, Union
+from typing import Any, Dict, Generic, Optional, TypeVar, Union
 
 from .config import CertificateProvider, KeyLike
-from .constants import SignType, DEFAULT_MAX_CLOCK_OFFSET, ERR_CALLBACK_ALGORITHM
+from .constants import DEFAULT_MAX_CLOCK_OFFSET, ERR_CALLBACK_ALGORITHM, SignType
+from .crypto.aes import aes_decrypt
 from .errors import DouYinPayError
 from .signer import verify_response
-from .crypto.aes import aes_decrypt
-from .crypto.sm4 import sm4_decrypt
 
 T = TypeVar("T")
 
@@ -38,7 +37,7 @@ class NotifyRequest(Generic[T]):
 class CallbackHandler:
     def __init__(
         self,
-        encrypt_key: str,
+        encrypt_key: KeyLike,
         certs: Optional[Dict[str, KeyLike]] = None,
         certificate_provider: Optional[CertificateProvider] = None,
         sign_type: str = SignType.RSA,
@@ -49,6 +48,40 @@ class CallbackHandler:
         self.certificate_provider = certificate_provider
         self.sign_type = sign_type
         self.max_clock_offset = max_clock_offset
+
+    @classmethod
+    def from_client(
+        cls,
+        client: Any,
+        encrypt_key: Optional[KeyLike] = None,
+        certs: Optional[Dict[str, KeyLike]] = None,
+        certificate_provider: Optional[CertificateProvider] = None,
+        sign_type: Optional[str] = None,
+        max_clock_offset: Optional[int] = None,
+    ) -> "CallbackHandler":
+        config = getattr(client, "config", None)
+        if config is None:
+            raise DouYinPayError("client must be a DouyinPayClient")
+
+        resolved_encrypt_key = encrypt_key if encrypt_key is not None else getattr(config, "encrypt_key", None)
+        if not resolved_encrypt_key:
+            raise DouYinPayError("encrypt_key is required for callback")
+
+        current_certs = dict(getattr(config, "certs", None) or {})
+        if certs:
+            current_certs.update(certs)
+
+        return cls(
+            encrypt_key=resolved_encrypt_key,
+            certs=current_certs,
+            certificate_provider=certificate_provider
+            if certificate_provider is not None
+            else getattr(config, "certificate_provider", None),
+            sign_type=sign_type or getattr(config, "sign_type", SignType.RSA),
+            max_clock_offset=max_clock_offset
+            if max_clock_offset is not None
+            else getattr(config, "max_clock_offset", DEFAULT_MAX_CLOCK_OFFSET),
+        )
 
     def parse(self, headers: Dict[str, Any], body: Union[str, bytes]) -> NotifyRequest:
         raw_body = body.decode("utf-8") if isinstance(body, bytes) else body
@@ -79,13 +112,6 @@ class CallbackHandler:
                 resource_dict.get("nonce", ""),
                 resource_dict.get("associated_data", ""),
             )
-        elif "SM4" in algo_upper or "CBC" in algo_upper:
-            plaintext = sm4_decrypt(
-                resource_dict["ciphertext"],
-                self.encrypt_key,
-                resource_dict.get("nonce", ""),
-                resource_dict.get("associated_data", ""),
-            )
         else:
             raise DouYinPayError(ERR_CALLBACK_ALGORITHM % algorithm)
         resource = EncryptedResource(
@@ -110,17 +136,35 @@ class CallbackHandler:
 def parse_callback(
     headers: Dict[str, Any],
     body: Union[str, bytes],
-    encrypt_key: str,
+    encrypt_key: Optional[KeyLike] = None,
     certs: Optional[Dict[str, KeyLike]] = None,
     certificate_provider: Optional[CertificateProvider] = None,
-    sign_type: str = SignType.RSA,
+    sign_type: Optional[str] = None,
+    client: Optional[Any] = None,
     **kwargs,
 ) -> NotifyRequest:
+    if client is not None:
+        handler = CallbackHandler.from_client(
+            client,
+            encrypt_key=encrypt_key,
+            certs=certs,
+            certificate_provider=certificate_provider,
+            sign_type=sign_type,
+            max_clock_offset=kwargs.pop("max_clock_offset", None),
+        )
+        if kwargs:
+            unexpected = ", ".join(kwargs.keys())
+            raise TypeError(f"unexpected callback option(s): {unexpected}")
+        return handler.parse(headers, body)
+
+    if not encrypt_key:
+        raise DouYinPayError("encrypt_key is required for callback")
+
     handler = CallbackHandler(
         encrypt_key=encrypt_key,
         certs=certs,
         certificate_provider=certificate_provider,
-        sign_type=sign_type,
+        sign_type=sign_type or SignType.RSA,
         **kwargs,
     )
     return handler.parse(headers, body)

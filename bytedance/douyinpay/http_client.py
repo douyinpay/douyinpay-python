@@ -8,13 +8,11 @@ from collections.abc import Callable
 import httpx
 
 from .config import DouYinPayConfig, validate_config
-from .constants import Headers, EncryptType, SignType
+from .constants import Headers
 from .errors import DouYinPayAPIError
 from .version import USER_AGENT, build_sdk_agent
 from .utils.http import normalize_base_url, join_url, append_query, request_target_from_url, buffer_to_str
-from .utils.pem import read_key_data
 from .crypto.rsa import load_rsa_private_key
-from .crypto.sm2 import load_sm2_private_key
 from .signer import sign_request, verify_response
 
 
@@ -32,10 +30,7 @@ class HttpClient:
         self.config = config
         base = config.base_uri or config.base_url
         self.base_url = normalize_base_url(base)
-        if config.sign_type == SignType.RSA:
-            self._private_key = load_rsa_private_key(config.private_key)
-        else:
-            self._private_key = load_sm2_private_key(config.private_key)
+        self._private_key = load_rsa_private_key(config.private_key)
         self._sign_type = config.sign_type
         self._encrypt_type = config.encrypt_type
         self._owns_client = config.http_client is None

@@ -1,12 +1,11 @@
 # Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
 # SPDX-License-Identifier: Apache-2.0
 
-import os, sys, json
+import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
-import pytest
 import httpx
 from datetime import datetime, timedelta
 from cryptography import x509
@@ -93,6 +92,8 @@ def test_authorization_header(httpx_mock):
         captured["auth"] = request.headers.get(Headers.Authorization)
         captured["ua"] = request.headers.get(Headers.UserAgent)
         captured["agent"] = request.headers.get(Headers.SdkAgent)
+        captured["timestamp"] = request.headers.get(Headers.Timestamp)
+        captured["nonce"] = request.headers.get(Headers.Nonce)
         resp_body = '{"ok":1}'
         priv = load_rsa_private_key(open(PRIV_PATH, "rb").read())
         ts = int(_time.time())
@@ -118,6 +119,8 @@ def test_authorization_header(httpx_mock):
         raw.close()
     assert captured["auth"] is not None
     assert captured["auth"].startswith("DouyinPay-RSA ")
+    assert captured["timestamp"] is None
+    assert captured["nonce"] is None
     assert captured["ua"] == USER_AGENT
     assert captured["agent"] == build_sdk_agent("RSA", MCHID)
     assert r.data == {"ok": 1}

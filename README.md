@@ -1,6 +1,6 @@
 # 抖音支付 Python 服务端 SDK (bytedance.douyinpay)
 
-> 官方抖音支付服务端 Python SDK，支持 **RSA + SM2 双签名算法**、**AES-GCM + SM4-CBC 双加密算法**、单证书/自动证书四种初始化模式。
+> 官方抖音支付服务端 Python SDK，支持 RSA 签名、AES-GCM 加密、单证书/自动证书两种初始化模式。
 
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
@@ -19,21 +19,45 @@ bytedance.douyinpay>=1.0.0,<2.0.0
 
 ## 功能概览
 
-| 算法组合 | 签名算法 | 对称加密 | 单证书模式 | 自动证书模式 | Sdk-Agent 统计头 |
-|---------|---------|---------|-----------|-------------|-----------------|
-| RSA（通用） | SHA256withRSA / PKCS1v15 | AES-256-GCM | `create_rsa_client` | `create_auto_rsa_client` | `RSA-` / `AutoRSA-` |
-| SM2（国密合规）| SM2withSM3 | SM4-CBC + PKCS5Padding | `create_sm2_client` | `create_auto_sm2_client` | `SM2-` / `AutoSM2-` |
+| 能力 | 说明 |
+|------|------|
+| 请求签名 | RSA / SHA256withRSA / PKCS1v15 |
+| 回调解密 | AES-256-GCM |
+| 单证书模式 | 使用本地平台证书验签 |
+| 自动证书模式 | SDK 自动下载并定时刷新平台证书 |
+| Service API 调用 | 通过 `sdk.services.xxx` 调用已封装业务接口，覆盖支付、退款、账单、签约、代扣、支付分、收银台、证书等常用能力 |
+| 通用 API 调用 | 通过 `sdk.path("/v1/xxx").get/post/put/patch/delete` 访问暂未封装接口 |
 
-回调处理通过 `CallbackHandler` 自动根据 `resource.algorithm` 字段动态选择 AES 或 SM4 解密器。
+回调处理通过 `CallbackHandler` 先使用平台证书验签，再使用 APIv3 密钥解密资源内容。
 
-## 四种初始化方式对比
+## 初始化方式对比
 
-| 模式 | 工厂函数 | 适用场景 | 是否需要提前上传平台证书 |
+| 模式 | 工厂函数 | 适用场景 | 是否需要传入平台证书 |
 |------|---------|---------|------------------------|
 | RSA 单证书 | `create_rsa_client()` | 平台证书手动管理 | 是 |
 | RSA 自动证书 | `create_auto_rsa_client()` | 自动下载+每24h刷新（推荐）| 否，首次 bootstrap |
-| SM2 单证书 | `create_sm2_client()` | 国密合规渠道，手动管理 | 是 |
-| SM2 自动证书 | `create_auto_sm2_client()` | 国密合规渠道+自动刷新 | 否，首次 bootstrap |
+
+## 初始化参数说明
+
+| 参数 | 单证书模式 | 自动证书模式 | 说明 |
+|------|------------|--------------|------|
+| `mchid` | 必填 | 必填 | 商户号 |
+| `serial` | 必填 | 必填 | 商户 API 证书序列号，会写入请求 `Authorization.serial_no` |
+| `private_key` | 必填 | 必填 | 商户 API 私钥，用于请求签名 |
+| `platform_certificate` | 必填 | 不需要 | 抖音支付平台证书 PEM，用于响应和回调验签 |
+| `encrypt_key` | 可选；需要 `sdk.parse_callback()` 时建议传入，也可调用 `parse_callback()` 时单独传 | 必填 | APIv3 密钥，用于解密平台证书和回调资源 |
+
+单证书模式传入完整平台证书 PEM 时，SDK 会自动解析平台证书序列号，不需要额外传平台证书序列号。
+自动证书模式会自动下载并缓存平台证书，因此初始化时不需要传 `platform_certificate`。
+
+与 Go SDK 初始化参数对照：
+
+| Go SDK | Python SDK | 说明 |
+|--------|------------|------|
+| `InitClientRSA(ctx, mchID, merchantCertSerialNo, merchantPrivateKeyString, platformCertString)` | `create_rsa_client(mchid, serial, private_key, platform_certificate)` | 单证书模式，业务侧传入商户私钥、商户证书序列号和平台证书 |
+| `InitAutoClientRSA(ctx, mchID, merchantCertSerialNo, merchantPrivateKeyString, encryptKey)` | `create_auto_rsa_client(mchid, serial, private_key, encrypt_key)` | 自动证书模式，业务侧不传平台证书，由 SDK 用 `encrypt_key` 下载并解密平台证书 |
+
+这里的 `serial` 对应 Go 的 `merchantCertSerialNo`，是商户 API 证书序列号，会写入请求头 `Authorization.serial_no`；不是平台证书序列号。
 
 ## 快速开始
 
@@ -47,9 +71,10 @@ sdk = douyinpay.create_rsa_client(
     serial="MCH_SERIAL_NO",
     private_key="/path/to/merchant_private_key.pem",
     platform_certificate="/path/to/platform_cert.pem",
+    encrypt_key="YOUR_API_V3_KEY",  # 需要用 sdk.parse_callback() 时传入
 )
 
-resp = sdk.path("/v1/trade/transactions/native").post({
+resp = sdk.services.native_pay.prepay({
     "mchid": "80001234567",
     "appid": "your_appid",
     "description": "Native支付示例",
@@ -77,24 +102,10 @@ sdk = douyinpay.create_auto_rsa_client(
     encrypt_key="YOUR_API_V3_KEY",  # 32字节 APIv3 密钥
 )
 try:
-    resp = sdk.path("/v1/trade/transactions/native").post({...})
+    resp = sdk.services.native_pay.prepay({...})
 finally:
     if sdk.certificate_manager:
         sdk.certificate_manager.stop()
-```
-
-### SM2 国密模式
-
-```python
-from bytedance import douyinpay
-
-sdk = douyinpay.create_sm2_client(
-    mchid="80001234567",
-    serial="MCH_SM2_SERIAL",
-    private_key="/path/to/sm2_merchant_key.pem",
-    platform_certificate="/path/to/sm2_platform_cert.pem",
-)
-# 后续调用同 RSA
 ```
 
 ## 回调处理（Flask 示例）
@@ -116,7 +127,7 @@ def callback():
         headers=headers, body=body,
         encrypt_key=API_V3_KEY,
         certs=PLATFORM_CERTS,
-        sign_type=douyinpay.SignType.RSA,  # SM2 商户此处传 SignType.SM2
+        sign_type=douyinpay.SignType.RSA,
     )
     event_type = notify.event_type
     content = notify.content or {}
@@ -129,28 +140,49 @@ def callback():
 
 > **安全红线**：回调必须**先验签**再解密，再处理业务；务必做幂等处理。
 
-## 通用链式调用
-
-SDK 采用通用 path 调用，任意新增 API 无需升级 SDK：
+如果使用自动证书模式，或在单证书模式初始化时传入了 `encrypt_key`，也可以直接复用 client 配置处理回调：
 
 ```python
-sdk.get_client("/v1/trade/transactions/native").post(json_data)  # POST
-sdk.path("/v1/trade/transactions/out-trade-no/ORDER-001").get(params={"mchid": "80001234567"})  # GET + Query
+notify = sdk.parse_callback(headers, body)
+```
+
+## Service 调用
+
+SDK 推荐使用 service 层调用已封装接口。Python 的 service 层对应 Go SDK 的 `services/*`：service 只固定 API path、HTTP method、path/query 参数；请求签名、验签、base URL 拼接仍由底层 `HttpClient` 统一处理。
+
+| Service | 常用方法 |
+|---------|----------|
+| `app_pay` / `h5_pay` / `jsapi_pay` / `native_pay` | `prepay(req)`、`close_order(out_trade_no, ...)`、`query_order_by_id(transaction_id, ...)`、`query_order_by_out_trade_no(out_trade_no, ...)` |
+| `contract_order_pay` / `credit_contract_order_pay` | `prepay(req)`、`close_order(...)`、`query_order_by_id(...)`、`query_order_by_out_trade_no(...)` |
+| `partner_app_pay` / `partner_h5_pay` / `partner_jsapi_pay` / `partner_native_pay` | 服务商下单、关单、按交易单号/商户订单号查询 |
+| `partner_contract_pay` | `contract_order(req)`、`pay_apply(req)` |
+| `refund` | `create(req)`、`query_by_out_refund_no(out_refund_no, ...)` |
+| `bill` | `apply_bill(params)`、`apply_fund_flow_bill(params)`、`apply_split_bill(params)` |
+| `partner_bill` | `apply_trade_bill(params)`、`apply_fund_flow_bill(params)`、`apply_split_bill(params)` |
+| `contract` | `query_contract(req)`、`delete_contract(req)`、`pre_entrust_web(req)`、`h5_entrust_web(req)` |
+| `partner_contract` | `query_contract(plan_id, out_contract_code, ...)`、`terminate_contract(plan_id, out_contract_code, req)` |
+| `deduct` | `deduct(req)`、`pay_apply(req)`、`deduct_notify(req)` |
+| `partner_deduct` | `contract_schedule(contract_id, req)`、`contract_schedule_query(contract_id, ...)` |
+| `payscore` / `partner_payscore` | 服务订单创建/完结/查询/取消/改价/同步，以及授权申请、查询和关闭 |
+| `cashier` | `prepay_consult(req)` |
+| `certificate` | `download_certificates()` |
+
+```python
+sdk.services.native_pay.prepay(json_data)
+sdk.services.native_pay.query_order_by_out_trade_no("ORDER-001", mchid="80001234567")
+sdk.services.refund.create(refund_data)
+```
+
+## 通用链式调用
+
+对于 SDK 暂未封装的接口，可以继续使用通用 path 调用作为兜底。`path` 只传 API 相对路径，`base_url` / `base_uri` 由 client 配置统一管理：
+
+```python
+sdk.path("/v1/merchant/xxx").get(params={"mchid": "80001234567"})  # GET + Query
 sdk.path("/v1/merchant/xxx").put(json_data)  # PUT
 sdk.path("/v1/resource/xxx").patch(json_data)  # PATCH（已支持）
 sdk.path("/v1/resource/xxx").delete()         # DELETE
 ```
-
-## SDK 统计头说明
-
-每个请求自动携带两个 Header：
-
-| Header | 格式示例 | 用途 |
-|--------|---------|------|
-| `User-Agent` | `douyinpay-python/1.0.0 httpx` | 版本统计与问题定位 |
-| `Douyinpay-Sdk-Agent` | `RSA-PYTHON-v1.0.0-80001234567` | 按初始化模式（RSA/AutoRSA/SM2/AutoSM2）统计语言使用情况 |
-
-跨 SDK 统一格式：`{AgentType}-{LANG}-v{version}-{mchid}`，已与 Go/Java/Node.js SDK 对齐。
 
 ## 错误处理
 
@@ -173,19 +205,11 @@ sdk.path("/v1/resource/xxx").delete()         # DELETE
 4. 日志与异常中严禁打印 `Authorization` 头完整内容；`on_request` 回调请自行脱敏。
 5. 回调验签通过后再解密；**回调验签失败直接返回 4xx，不执行业务**。
 
-## SM2 国密模式使用说明
-
-- **使用场景**：国内金融支付合规要求、特定银行/渠道要求国密。
-- **密钥格式**：SM2 私钥可使用标准 PEM（PKCS8 EC 格式），`gmssl>=3.2.2` 能正确解析。
-- **算法绑定**：SM2 模式下对称加密自动使用 `SM4-CBC + PKCS5Padding`，与 Go/Java SDK 一致。
-- **回调解密**：无需手动指定 `encrypt_type`，`CallbackHandler` 依据 `resource.algorithm` 字段自动选择。
-
 ## 依赖
 
 - Python >= 3.8
 - `httpx>=0.25.0`：现代同步+异步 HTTP 客户端
 - `cryptography>=41.0.0`：RSA + AES（安全审计）
-- `gmssl>=3.2.2`：纯 Python 国密算法（SM2/SM3/SM4）
 
 ## License
 

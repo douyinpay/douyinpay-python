@@ -9,8 +9,11 @@ APPID = os.getenv("DOUYINPAY_APPID", "")
 MCH_SERIAL = os.getenv("DOUYINPAY_MCH_SERIAL", "")
 MCH_PRIVATE_KEY_PATH = os.getenv("DOUYINPAY_MCH_PRIVATE_KEY_PATH", "")
 PLATFORM_CERT_PATH = os.getenv("DOUYINPAY_PLATFORM_CERT_PATH", "")
+OPENID = os.getenv("DOUYINPAY_TEST_OPENID", "")
+
+
 def main():
-    if not (MCHID and APPID and MCH_SERIAL and MCH_PRIVATE_KEY_PATH and PLATFORM_CERT_PATH):
+    if not (MCHID and APPID and MCH_SERIAL and MCH_PRIVATE_KEY_PATH and PLATFORM_CERT_PATH and OPENID):
         print("请设置环境变量")
         return
     sdk = douyinpay.create_rsa_client(
@@ -21,7 +24,7 @@ def main():
     req = {
         "mchid": MCHID,
         "appid": APPID,
-        "description": "Native支付测试",
+        "description": "JSAPI支付测试商品",
         "out_trade_no": f"jsapi-{int(__import__('time').time())}",
         "amount": {
             "currency": "CNY",
@@ -29,9 +32,10 @@ def main():
         },
         "ip": os.getenv("DOUYINPAY_CLIENT_IP", "127.0.0.1"),
         "notify_url": os.getenv("DOUYINPAY_NOTIFY_URL", "https://example.com/callback"),
+        "payer": {"openid": OPENID},
     }
-    resp = sdk.path("/v1/trade/transactions/native").post(req)
-    print(f"Native下单: status={resp.status_code}, data={resp.data}")
+    resp = sdk.services.jsapi_pay.prepay(req)
+    print(f"JSAPI支付下单: status={resp.status_code}, data={resp.data}")
 
 
 if __name__ == "__main__":

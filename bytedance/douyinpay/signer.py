@@ -7,7 +7,6 @@ from typing import Dict, Any, Optional, Union
 
 from .constants import (
     SignType,
-    EncryptType,
     Headers,
     DEFAULT_MAX_CLOCK_OFFSET,
     ERR_UNSUPPORTED_SIGN_TYPE,
@@ -25,9 +24,7 @@ from .formatter import (
     build_response_verify_message,
 )
 from .utils.http import header_value
-from .utils.pem import read_key_data
-from .crypto.rsa import rsa_sign, rsa_verify, load_rsa_private_key, load_rsa_public_key
-from .crypto.sm2 import sm2_sign, sm2_verify, load_sm2_private_key, load_sm2_public_key
+from .crypto.rsa import rsa_sign, rsa_verify, load_rsa_public_key
 
 
 @dataclass
@@ -41,11 +38,8 @@ class SignedRequest:
 
 def create_signer(sign_type: str, private_key=None, public_key=None):
     from .crypto.rsa import RsaSigner
-    from .crypto.sm2 import Sm2Signer
     if sign_type == SignType.RSA:
         return RsaSigner(private_key=private_key, public_key=public_key)
-    if sign_type == SignType.SM2:
-        return Sm2Signer(private_key=private_key, public_key=public_key)
     raise DouYinPayError(ERR_UNSUPPORTED_SIGN_TYPE % sign_type)
 
 
@@ -64,16 +58,12 @@ def sign_request(
 
     if sign_type == SignType.RSA:
         signature = rsa_sign(message, private_key)
-    elif sign_type == SignType.SM2:
-        signature = sm2_sign(message, private_key)
     else:
         raise DouYinPayError(ERR_UNSUPPORTED_SIGN_TYPE % sign_type)
 
     authorization = build_authorization(mchid, nonce, signature, timestamp, serial)
     headers = {
         Headers.Authorization: authorization,
-        Headers.Timestamp: str(timestamp),
-        Headers.Nonce: nonce,
     }
     return SignedRequest(
         headers=headers,
@@ -87,8 +77,6 @@ def sign_request(
 def _load_public_key_from_cert(cert_pem, sign_type: str):
     if sign_type == SignType.RSA:
         return load_rsa_public_key(cert_pem)
-    if sign_type == SignType.SM2:
-        return load_sm2_public_key(cert_pem)
     raise DouYinPayError(ERR_UNSUPPORTED_SIGN_TYPE % sign_type)
 
 
@@ -120,8 +108,6 @@ def verify_response(
     message = build_response_verify_message(ts_int, nonce, body or "")
     if sign_type == SignType.RSA:
         ok = rsa_verify(message, signature, public_key)
-    elif sign_type == SignType.SM2:
-        ok = sm2_verify(message, signature, public_key)
     else:
         raise DouYinPayError(ERR_UNSUPPORTED_SIGN_TYPE % sign_type)
     if not ok:

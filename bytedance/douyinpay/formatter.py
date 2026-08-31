@@ -4,7 +4,7 @@
 import time
 import secrets
 import string
-from typing import Optional, Union
+from typing import Union
 
 from .constants import (
     AUTHORIZATION_TYPE,

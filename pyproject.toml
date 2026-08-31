@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bytedance.douyinpay"
 version = "1.0.0"
-description = "Douyin Pay Python Server SDK - 抖音支付服务端 Python SDK，支持 RSA/SM2 双签名算法、AES/SM4 双加密算法"
+description = "Douyin Pay Python Server SDK - 抖音支付服务端 Python SDK，支持 RSA 签名和 AES 加密"
 readme = "README.md"
 requires-python = ">=3.8,<4.0"
 license = "Apache-2.0"
 authors = [
     { name = "douyinpay" }
 ]
-keywords = ["douyinpay", "抖音支付", "payment", "sdk", "sm2", "sm4", "国密"]
+keywords = ["douyinpay", "抖音支付", "payment", "sdk", "rsa", "aes"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -29,7 +29,6 @@ classifiers = [
 dependencies = [
     "httpx>=0.25.0,<1.0.0",
     "cryptography>=41.0.0,<46.0.0",
-    "gmssl>=3.2.2,<4.0.0",
 ]
 
 [project.optional-dependencies]
