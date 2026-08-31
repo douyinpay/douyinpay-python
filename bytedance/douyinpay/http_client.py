@@ -1,3 +1,6 @@
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 import json as _json
 from typing import Any, Dict, Optional, Union
 from collections.abc import Callable

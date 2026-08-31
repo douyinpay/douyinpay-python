@@ -1,3 +1,6 @@
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 import os, sys, time, base64
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
