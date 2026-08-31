@@ -20,20 +20,25 @@ def main():
         private_key=MCH_PRIVATE_KEY_PATH,
         platform_certificate=PLATFORM_CERT_PATH,
     )
+    client_ip = os.getenv("DOUYINPAY_CLIENT_IP", "127.0.0.1")
     req = {
         "mchid": MCHID,
         "appid": APPID,
-        "description": "Native支付测试",
+        "description": "H5支付测试商品",
         "out_trade_no": f"h5-{int(__import__('time').time())}",
         "amount": {
             "currency": "CNY",
             "total": 1,
         },
-        "ip": os.getenv("DOUYINPAY_CLIENT_IP", "127.0.0.1"),
+        "ip": client_ip,
         "notify_url": os.getenv("DOUYINPAY_NOTIFY_URL", "https://example.com/callback"),
+        "scene_info": {
+            "payer_client_ip": client_ip,
+            "h5_info": {"type": "Wap"},
+        },
     }
-    resp = sdk.path("/v1/trade/transactions/native").post(req)
-    print(f"Native下单: status={resp.status_code}, data={resp.data}")
+    resp = sdk.services.h5_pay.prepay(req)
+    print(f"H5支付下单: status={resp.status_code}, data={resp.data}")
 
 
 if __name__ == "__main__":

@@ -12,7 +12,6 @@ from bytedance.douyinpay.config import DouYinPayConfig
 from bytedance.douyinpay.constants import SignType, EncryptType, GET_PLATFORM_CERTS_PATH, Headers
 from bytedance.douyinpay.certificates import AutoCertificateManager, download_platform_certificates
 from bytedance.douyinpay.crypto.aes import aes_encrypt
-from bytedance.douyinpay.crypto.sm4 import sm4_encrypt
 from bytedance.douyinpay.utils.pem import get_certificate_serial_number
 from bytedance.douyinpay.crypto.rsa import load_rsa_private_key, rsa_sign
 from bytedance.douyinpay.formatter import build_response_verify_message
@@ -23,13 +22,12 @@ CERT_PATH = os.path.join(FIXTURES, "rsa_platform_cert.pem")
 CERT_PEM_STR = open(CERT_PATH, "r").read()
 PLAT_SERIAL = get_certificate_serial_number(CERT_PATH)
 AES_KEY = b"a" * 32
-SM4_KEY = b"s" * 16
 MCH_PRIV = open(PRIV_PATH, "rb").read()
 
 
 def _make_resp_factory(cipher_text, algo, cert_no=PLAT_SERIAL, status=200, nonce=None, aad="cert"):
     if nonce is None:
-        nonce = "0123456789ab" if "AES" in algo else "IVV" * 5 + "1"
+        nonce = "0123456789ab"
 
     def _handler(request):
         resp_body_dict = {
@@ -79,21 +77,6 @@ def test_download_platform_certificates_aes(httpx_mock):
     downloaded = download_platform_certificates(cfg, verify_response=False)
     assert len(downloaded) == 1
     assert downloaded[0].serial_no == PLAT_SERIAL
-    assert "BEGIN CERTIFICATE" in downloaded[0].certificate
-
-
-def test_download_platform_certificates_sm4(httpx_mock):
-    iv = "0123456789ABCDEF"
-    ct = sm4_encrypt(CERT_PEM_STR, SM4_KEY, iv, aad="cert")
-    httpx_mock.add_callback(_make_resp_factory(ct, "SM4-CBC", nonce=iv))
-    cfg = DouYinPayConfig(
-        mchid="mch1", serial="mch-s",
-        private_key=MCH_PRIV, certs={"_bootstrap": ""},
-        sign_type=SignType.SM2, encrypt_type=EncryptType.SM4,
-        encrypt_key=SM4_KEY,
-    )
-    downloaded = download_platform_certificates(cfg, verify_response=False)
-    assert len(downloaded) == 1
     assert "BEGIN CERTIFICATE" in downloaded[0].certificate
 
 

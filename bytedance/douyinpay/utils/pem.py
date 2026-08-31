@@ -5,7 +5,6 @@ import os
 from typing import Union, Dict, Optional
 
 from cryptography import x509
-from cryptography.hazmat.primitives import serialization
 
 
 KeyLike = Union[str, bytes]

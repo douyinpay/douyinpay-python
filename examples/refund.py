@@ -33,7 +33,7 @@ def main():
         },
         "notify_url": os.getenv("DOUYINPAY_REFUND_NOTIFY_URL", "https://example.com/refund-callback"),
     }
-    resp = sdk.path("/v1/trade/refund/domestic/refunds").post(req)
+    resp = sdk.services.refund.create(req)
     print(f"退款申请: status={resp.status_code}, data={resp.data}")
 
 

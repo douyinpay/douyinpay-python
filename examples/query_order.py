@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-from urllib.parse import quote
 from bytedance import douyinpay
 
 MCHID = os.getenv("DOUYINPAY_MCHID", "")
@@ -21,8 +20,7 @@ def main():
         platform_certificate=PLATFORM_CERT_PATH,
     )
     out_trade_no = os.getenv("DOUYINPAY_QUERY_ORDER_NO", "SAMPLE-ORDER")
-    path = f"/v1/trade/transactions/out-trade-no/{quote(out_trade_no, safe='')}"
-    resp = sdk.path(path).get(params={"mchid": MCHID})
+    resp = sdk.services.native_pay.query_order_by_out_trade_no(out_trade_no, mchid=MCHID)
     print(f"查单: status={resp.status_code}, data={resp.data}")
 
 

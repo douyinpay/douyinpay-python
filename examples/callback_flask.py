@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-import json
 from flask import Flask, request, jsonify
 from bytedance import douyinpay
 

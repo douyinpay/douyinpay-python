@@ -36,7 +36,7 @@ def main():
             "ip": os.getenv("DOUYINPAY_CLIENT_IP", "127.0.0.1"),
             "notify_url": os.getenv("DOUYINPAY_NOTIFY_URL", "https://example.com/callback"),
         }
-        resp = sdk.path("/v1/trade/transactions/native").post(req_data)
+        resp = sdk.services.native_pay.prepay(req_data)
         print(f"自动证书RSA Native下单 status={resp.status_code}, data={resp.data}")
     finally:
         if sdk.certificate_manager:

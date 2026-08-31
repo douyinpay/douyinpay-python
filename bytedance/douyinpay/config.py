@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
 # SPDX-License-Identifier: Apache-2.0
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, Optional, Union, Any, Callable
 from abc import ABC, abstractmethod
 
@@ -21,7 +21,6 @@ from .constants import (
 )
 from .errors import DouYinPayInvalidArgumentError
 from .crypto.rsa import load_rsa_private_key
-from .crypto.sm2 import load_sm2_private_key
 
 
 KeyLike = Union[str, bytes]
@@ -73,20 +72,15 @@ def validate_config(config: DouYinPayConfig) -> None:
         raise DouYinPayInvalidArgumentError(ERR_INIT_CERTS_MANDATORY)
     if config.serial in config.certs:
         raise DouYinPayInvalidArgumentError(ERR_INIT_CERTS_EXCLUDE_MCH_SERIAL)
-    if config.sign_type not in (SignType.RSA, SignType.SM2):
+    if config.sign_type != SignType.RSA:
         raise DouYinPayInvalidArgumentError(ERR_UNSUPPORTED_SIGN_TYPE % config.sign_type)
-    if config.encrypt_type not in (EncryptType.AES, EncryptType.SM4):
+    if config.encrypt_type != EncryptType.AES:
         raise DouYinPayInvalidArgumentError(ERR_UNSUPPORTED_ENCRYPT_TYPE % config.encrypt_type)
     if has_provider and not config.encrypt_key:
         raise DouYinPayInvalidArgumentError("encrypt_key is required for auto certificate mode")
-    if config.sign_type == SignType.SM2 and config.encrypt_type != EncryptType.SM4:
-        raise DouYinPayInvalidArgumentError("SM2 sign type must pair with SM4 encrypt type")
     if config.sign_type == SignType.RSA and config.encrypt_type != EncryptType.AES:
         raise DouYinPayInvalidArgumentError("RSA sign type must pair with AES encrypt type")
     try:
-        if config.sign_type == SignType.RSA:
-            load_rsa_private_key(config.private_key)
-        else:
-            load_sm2_private_key(config.private_key)
+        load_rsa_private_key(config.private_key)
     except Exception as e:
         raise DouYinPayInvalidArgumentError(f"invalid private key: {e}")

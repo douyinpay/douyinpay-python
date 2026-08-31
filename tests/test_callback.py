@@ -1,17 +1,20 @@
 # Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
 # SPDX-License-Identifier: Apache-2.0
 
-import os, sys, json, time, base64
+import os, sys, json, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 import pytest
 from bytedance.douyinpay.callback import CallbackHandler, parse_callback, NotifyRequest
+from bytedance.douyinpay.client import DouyinPayClient
+from bytedance.douyinpay.config import DouYinPayConfig
 from bytedance.douyinpay.constants import SignType, Headers
 from bytedance.douyinpay.crypto.rsa import load_rsa_private_key, rsa_sign
 from bytedance.douyinpay.crypto.aes import aes_encrypt
-from bytedance.douyinpay.crypto.sm4 import sm4_encrypt
+from bytedance.douyinpay.errors import DouYinPayError
+from bytedance.douyinpay.factory import create_rsa_client
 from bytedance.douyinpay.utils.pem import get_certificate_serial_number
 from bytedance.douyinpay.formatter import build_response_verify_message
 
@@ -21,7 +24,14 @@ CERT_PATH = os.path.join(FIXTURES, "rsa_platform_cert.pem")
 CERT_PEM = open(CERT_PATH, "rb").read()
 PLAT_SERIAL = get_certificate_serial_number(CERT_PATH)
 AES_KEY = b"k" * 32
-SM4_KEY = b"s" * 16
+
+
+class StaticCertificateProvider:
+    def __init__(self, certs):
+        self._certs = certs
+
+    def get_certs(self):
+        return dict(self._certs)
 
 
 def _make_callback(body: str, sign_priv_path=PRIV_PATH) -> dict:
@@ -38,7 +48,7 @@ def _make_callback(body: str, sign_priv_path=PRIV_PATH) -> dict:
     }
 
 
-def test_parse_callback_aes():
+def _make_encrypted_notify_body():
     biz = {"out_trade_no": "T001", "amount": 100}
     biz_str = json.dumps(biz)
     ct = aes_encrypt(biz_str, AES_KEY, b"n" * 12, aad="txn")
@@ -55,7 +65,11 @@ def test_parse_callback_aes():
         },
         "summary": "支付成功",
     }
-    body = json.dumps(notify, ensure_ascii=False)
+    return json.dumps(notify, ensure_ascii=False), biz_str
+
+
+def test_parse_callback_aes():
+    body, biz_str = _make_encrypted_notify_body()
     headers = _make_callback(body)
     handler = CallbackHandler(
         encrypt_key=AES_KEY,
@@ -72,28 +86,88 @@ def test_parse_callback_aes():
     assert result.content["out_trade_no"] == "T001"
 
 
-def test_parse_callback_sm4_algorithm_detected():
-    biz = {"trade_no": "T002"}
-    biz_str = json.dumps(biz)
-    iv = b"I" * 16
-    ct = sm4_encrypt(biz_str, SM4_KEY, iv)
-    notify = {
-        "resource": {
-            "algorithm": "SM4-CBC",
-            "ciphertext": ct,
-            "nonce": "I" * 16,
-            "associated_data": "",
-        },
-    }
-    body = json.dumps(notify)
+def test_callback_handler_from_client_uses_client_certs():
+    body, _ = _make_encrypted_notify_body()
     headers = _make_callback(body)
-    result = parse_callback(
-        headers, body,
-        encrypt_key=SM4_KEY,
-        certs={PLAT_SERIAL: CERT_PEM},
-        sign_type=SignType.RSA,
+    client = create_rsa_client(
+        "mch-1",
+        "MCH-SER-001",
+        open(PRIV_PATH, "rb").read(),
+        CERT_PEM,
+        encrypt_key=AES_KEY,
     )
-    assert result.content["trade_no"] == "T002"
+    try:
+        handler = CallbackHandler.from_client(client)
+        result = handler.parse(headers, body)
+        assert result.content["out_trade_no"] == "T001"
+    finally:
+        client.close()
+
+
+def test_client_parse_callback_uses_client_config():
+    body, _ = _make_encrypted_notify_body()
+    headers = _make_callback(body)
+    client = create_rsa_client(
+        "mch-1",
+        "MCH-SER-001",
+        open(PRIV_PATH, "rb").read(),
+        CERT_PEM,
+        encrypt_key=AES_KEY,
+    )
+    try:
+        result = client.parse_callback(headers, body)
+        assert result.content["amount"] == 100
+    finally:
+        client.close()
+
+
+def test_parse_callback_accepts_client_option():
+    body, _ = _make_encrypted_notify_body()
+    headers = _make_callback(body)
+    client = create_rsa_client(
+        "mch-1",
+        "MCH-SER-001",
+        open(PRIV_PATH, "rb").read(),
+        CERT_PEM,
+        encrypt_key=AES_KEY,
+    )
+    try:
+        result = parse_callback(headers, body, client=client)
+        assert result.event_type == "PAYMENT.SUCCESS"
+    finally:
+        client.close()
+
+
+def test_client_parse_callback_uses_certificate_provider():
+    body, _ = _make_encrypted_notify_body()
+    headers = _make_callback(body)
+    client = DouyinPayClient(DouYinPayConfig(
+        mchid="mch-1",
+        serial="MCH-SER-001",
+        private_key=open(PRIV_PATH, "rb").read(),
+        certs={},
+        certificate_provider=StaticCertificateProvider({PLAT_SERIAL: CERT_PEM}),
+        encrypt_key=AES_KEY,
+    ))
+    try:
+        result = client.parse_callback(headers, body)
+        assert result.content["out_trade_no"] == "T001"
+    finally:
+        client.close()
+
+
+def test_parse_callback_from_client_requires_encrypt_key():
+    client = create_rsa_client(
+        "mch-1",
+        "MCH-SER-001",
+        open(PRIV_PATH, "rb").read(),
+        CERT_PEM,
+    )
+    try:
+        with pytest.raises(DouYinPayError, match="encrypt_key is required"):
+            client.parse_callback({}, "{}")
+    finally:
+        client.close()
 
 
 def test_parse_callback_verify_fails_without_cert():

@@ -1,7 +1,6 @@
 # Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
 # SPDX-License-Identifier: Apache-2.0
 
-import os
 from urllib.parse import urlparse, urlencode, parse_qsl, urlunparse
 from typing import Union, Dict, List, Any, Optional
 

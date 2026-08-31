@@ -16,12 +16,10 @@ class Headers:
 
 class SignType:
     RSA = "RSA"
-    SM2 = "SM2"
 
 
 class EncryptType:
     AES = "AES"
-    SM4 = "SM4"
 
 
 GET_PLATFORM_CERTS_PATH = "/v1/merchant/certificates/getPlatformCertificates"
@@ -38,8 +36,6 @@ DEFAULT_NONCE_SIZE = 32
 class SdkAgentType:
     RSA = "RSA"
     AUTO_RSA = "AutoRSA"
-    SM2 = "SM2"
-    AUTO_SM2 = "AutoSM2"
 
 
 ERR_INIT_MCHID_MANDATORY = "mchid is required"
@@ -54,5 +50,4 @@ ERR_RES_SIGNATURE_VERIFY_FAILED = "signature verification failed"
 ERR_UNSUPPORTED_SIGN_TYPE = "unsupported sign type: %s"
 ERR_UNSUPPORTED_ENCRYPT_TYPE = "unsupported encrypt type: %s"
 ERR_AES_KEY_LENGTH = "AES key must be 32 bytes (256 bits)"
-ERR_SM4_KEY_LENGTH = "SM4 key must be 16 bytes (128 bits)"
 ERR_CALLBACK_ALGORITHM = "unsupported callback algorithm: %s"

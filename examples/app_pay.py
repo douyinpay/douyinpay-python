@@ -23,7 +23,7 @@ def main():
     req = {
         "mchid": MCHID,
         "appid": APPID,
-        "description": "Native支付测试",
+        "description": "App支付测试商品",
         "out_trade_no": f"app-{int(__import__('time').time())}",
         "amount": {
             "currency": "CNY",
@@ -32,8 +32,8 @@ def main():
         "ip": os.getenv("DOUYINPAY_CLIENT_IP", "127.0.0.1"),
         "notify_url": os.getenv("DOUYINPAY_NOTIFY_URL", "https://example.com/callback"),
     }
-    resp = sdk.path("/v1/trade/transactions/native").post(req)
-    print(f"Native支付下单: status={resp.status_code}, data={resp.data}")
+    resp = sdk.services.app_pay.prepay(req)
+    print(f"App支付下单: status={resp.status_code}, data={resp.data}")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from dataclasses import dataclass
-from typing import Dict, Generic, TypeVar, Any, Optional
+from typing import Any, Dict, Generic, Optional, TypeVar, Union
 
 T = TypeVar("T")
 
@@ -20,6 +20,7 @@ class DouyinPayClient:
         self._http = HttpClient(config)
         self.config = config
         self._certificate_manager: Any = None
+        self._services: Any = None
 
     @property
     def certificate_manager(self):
@@ -30,6 +31,22 @@ class DouyinPayClient:
 
     def path(self, api_path: str) -> "PathClient":
         return self.get_client(api_path)
+
+    @property
+    def services(self):
+        if self._services is None:
+            from .services import DouyinPayServices
+
+            self._services = DouyinPayServices(self)
+        return self._services
+
+    def callback_handler(self, **kwargs):
+        from .callback import CallbackHandler
+
+        return CallbackHandler.from_client(self, **kwargs)
+
+    def parse_callback(self, headers: Dict[str, Any], body: Union[str, bytes], **kwargs):
+        return self.callback_handler(**kwargs).parse(headers, body)
 
     def close(self) -> None:
         if self._certificate_manager is not None:

@@ -30,16 +30,6 @@ def test_build_sdk_agent_auto_rsa():
     assert agent.startswith("AutoRSA-PYTHON-v")
 
 
-def test_build_sdk_agent_sm2():
-    agent = build_sdk_agent("SM2", "123")
-    assert agent.startswith("SM2-PYTHON-v")
-
-
-def test_build_sdk_agent_auto_sm2():
-    agent = build_sdk_agent("AutoSM2", "123")
-    assert agent.startswith("AutoSM2-PYTHON-v")
-
-
 def test_user_agent_contains_sdk_version():
     assert SDK_VERSION in USER_AGENT
     assert "douyinpay-python/" in USER_AGENT

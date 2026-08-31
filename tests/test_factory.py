@@ -10,7 +10,6 @@ import pytest
 import httpx
 from bytedance.douyinpay.factory import (
     create_rsa_client, create_auto_rsa_client, create_auto_rsa_client_with_manager,
-    create_sm2_client, create_auto_sm2_client,
     create_client, create_auto_client,
 )
 from bytedance.douyinpay.constants import SignType, EncryptType, SdkAgentType
@@ -19,8 +18,6 @@ from bytedance.douyinpay.errors import DouYinPayInvalidArgumentError
 
 PRIV_PATH = os.path.join(FIXTURES, "rsa_merchant_key.pem")
 CERT_PATH = os.path.join(FIXTURES, "rsa_platform_cert.pem")
-SM2_PRIV_PATH = os.path.join(FIXTURES, "sm2_merchant_key.pem")
-SM2_CERT_PATH = os.path.join(FIXTURES, "sm2_platform_cert.pem")
 
 MCH_SERIAL = "MCH-SER-001"
 
@@ -38,13 +35,6 @@ def test_create_rsa_client_default_agent():
 def test_create_client_alias_to_rsa():
     c = create_client("mch-1", MCH_SERIAL, open(PRIV_PATH, "rb").read(), open(CERT_PATH, "rb").read())
     assert c.config.sign_type == SignType.RSA
-
-
-def test_create_sm2_client_sets_sm4_encrypt():
-    c = create_sm2_client("mch-1", MCH_SERIAL, open(SM2_PRIV_PATH, "rb").read(), open(SM2_CERT_PATH, "rb").read())
-    assert c.config.sign_type == SignType.SM2
-    assert c.config.encrypt_type == EncryptType.SM4
-    assert c.config.sdk_agent == SdkAgentType.SM2
 
 
 def test_create_rsa_client_rejects_missing_mchid():
@@ -76,16 +66,6 @@ def test_create_rsa_client_accepts_api_base_alias():
         assert c.config.base_url == "https://api.alias.test/"
     finally:
         c.close()
-
-
-def test_create_sm2_client_rejects_wrong_encrypt_pair():
-    with pytest.raises(DouYinPayInvalidArgumentError):
-        create_sm2_client(
-            "mch-1", MCH_SERIAL,
-            open(SM2_PRIV_PATH, "rb").read(),
-            open(SM2_CERT_PATH, "rb").read(),
-            encrypt_type=EncryptType.AES,
-        )
 
 
 def test_create_auto_rsa_requires_encrypt_key(httpx_mock):
