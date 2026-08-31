@@ -50,15 +50,6 @@ bytedance.douyinpay>=1.0.0,<2.0.0
 单证书模式传入完整平台证书 PEM 时，SDK 会自动解析平台证书序列号，不需要额外传平台证书序列号。
 自动证书模式会自动下载并缓存平台证书，因此初始化时不需要传 `platform_certificate`。
 
-与 Go SDK 初始化参数对照：
-
-| Go SDK | Python SDK | 说明 |
-|--------|------------|------|
-| `InitClientRSA(ctx, mchID, merchantCertSerialNo, merchantPrivateKeyString, platformCertString)` | `create_rsa_client(mchid, serial, private_key, platform_certificate)` | 单证书模式，业务侧传入商户私钥、商户证书序列号和平台证书 |
-| `InitAutoClientRSA(ctx, mchID, merchantCertSerialNo, merchantPrivateKeyString, encryptKey)` | `create_auto_rsa_client(mchid, serial, private_key, encrypt_key)` | 自动证书模式，业务侧不传平台证书，由 SDK 用 `encrypt_key` 下载并解密平台证书 |
-
-这里的 `serial` 对应 Go 的 `merchantCertSerialNo`，是商户 API 证书序列号，会写入请求头 `Authorization.serial_no`；不是平台证书序列号。
-
 ## 快速开始
 
 ### RSA 单证书模式
@@ -148,7 +139,7 @@ notify = sdk.parse_callback(headers, body)
 
 ## Service 调用
 
-SDK 推荐使用 service 层调用已封装接口。Python 的 service 层对应 Go SDK 的 `services/*`：service 只固定 API path、HTTP method、path/query 参数；请求签名、验签、base URL 拼接仍由底层 `HttpClient` 统一处理。
+SDK 推荐使用 service 层调用已封装接口。service 只固定 API path、HTTP method、path/query 参数；请求签名、验签、base URL 拼接仍由底层 `HttpClient` 统一处理。
 
 | Service | 常用方法 |
 |---------|----------|
