@@ -1,3 +1,6 @@
+# Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 from .version import SDK_VERSION, build_sdk_agent, USER_AGENT
 from .version import SDK_VERSION as __version__
 from .client import DouyinPayClient, PathClient, DouyinPayResponse
