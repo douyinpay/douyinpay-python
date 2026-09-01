@@ -99,42 +99,71 @@ finally:
         sdk.certificate_manager.stop()
 ```
 
-## 回调处理（Flask 示例）
+## 回调处理
+
+HTTP 回调入口由业务自己的 Web 框架负责。SDK 不启动回调服务，只负责对抖音支付回调请求做验签、解密和解析：
 
 ```python
-from flask import Flask, request, jsonify
 from bytedance import douyinpay
 
-app = Flask(__name__)
+sdk = douyinpay.create_auto_rsa_client(
+    mchid="80001234567",
+    serial="MCH_SERIAL_NO",
+    private_key="/path/to/merchant_private_key.pem",
+    encrypt_key="YOUR_API_V3_KEY",
+)
 
-API_V3_KEY = "YOUR_API_V3_KEY"
-PLATFORM_CERTS = {}  # 加载方式见 examples/callback_flask.py
-
-@app.post("/callback/douyinpay")
-def callback():
-    headers = dict(request.headers)
-    body = request.get_data(as_text=True)
-    notify = douyinpay.parse_callback(
-        headers=headers, body=body,
-        encrypt_key=API_V3_KEY,
-        certs=PLATFORM_CERTS,
-        sign_type=douyinpay.SignType.RSA,
-    )
+def handle_douyinpay_callback(headers, body):
+    notify = sdk.parse_callback(headers, body)
     event_type = notify.event_type
     content = notify.content or {}
+
     if event_type and event_type.startswith("PAYMENT"):
         out_trade_no = content.get("out_trade_no")
         # 处理业务逻辑：幂等更新订单状态
         print(f"订单 {out_trade_no} 支付成功")
+
     return {"code": "SUCCESS", "message": "OK"}
 ```
 
 > **安全红线**：回调必须**先验签**再解密，再处理业务；务必做幂等处理。
 
-如果使用自动证书模式，或在单证书模式初始化时传入了 `encrypt_key`，也可以直接复用 client 配置处理回调：
+自动证书模式下，SDK 会复用 client 里的证书管理器获取最新平台证书，不需要业务额外维护 `PLATFORM_CERTS`。联调时可以临时把刷新间隔调短，确认会自动请求平台证书接口：
 
 ```python
+sdk = douyinpay.create_auto_rsa_client(
+    mchid="80001234567",
+    serial="MCH_SERIAL_NO",
+    private_key="/path/to/merchant_private_key.pem",
+    encrypt_key="YOUR_API_V3_KEY",
+    refresh_interval_sec=10,  # 仅用于联调验证；生产建议使用默认 24h
+)
+```
+
+如果使用单证书模式，建议在初始化 client 时传入 `encrypt_key`，然后沿用同一个回调写法：
+
+```python
+sdk = douyinpay.create_rsa_client(
+    mchid="80001234567",
+    serial="MCH_SERIAL_NO",
+    private_key="/path/to/merchant_private_key.pem",
+    platform_certificate="/path/to/platform_cert.pem",
+    encrypt_key="YOUR_API_V3_KEY",
+)
+
 notify = sdk.parse_callback(headers, body)
+```
+
+也可以继续使用独立函数处理回调，适合手动管理平台证书的场景：
+
+```python
+notify = douyinpay.parse_callback(
+    headers=headers,
+    body=body,
+    encrypt_key="YOUR_API_V3_KEY",
+    certs=PLATFORM_CERTS,
+    sign_type=douyinpay.SignType.RSA,
+)
 ```
 
 ## 通用 API 调用

@@ -2,37 +2,62 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-from flask import Flask, request, jsonify
+
+from flask import Flask, jsonify, request
+
 from bytedance import douyinpay
 
 app = Flask(__name__)
 
+MCHID = os.getenv("DOUYINPAY_MCHID", "")
+MCH_SERIAL = os.getenv("DOUYINPAY_MCH_SERIAL", "")
+MCH_PRIVATE_KEY_PATH = os.getenv("DOUYINPAY_MCH_PRIVATE_KEY_PATH", "")
 API_V3_KEY = os.getenv("DOUYINPAY_API_V3_KEY", "")
 PLATFORM_CERT_PATH = os.getenv("DOUYINPAY_PLATFORM_CERT_PATH", "")
 SIGN_TYPE = os.getenv("DOUYINPAY_SIGN_TYPE", douyinpay.SignType.RSA)
+REFRESH_INTERVAL_SEC = int(os.getenv("DOUYINPAY_CERT_REFRESH_INTERVAL_SEC", str(24 * 60 * 60)))
 
-_certs = {}
-if PLATFORM_CERT_PATH:
-    from bytedance.douyinpay.utils.pem import read_key_data, get_certificate_serial_number, add_certificate
+
+def _build_auto_client():
+    if not (MCHID and MCH_SERIAL and MCH_PRIVATE_KEY_PATH and API_V3_KEY):
+        return None
+    return douyinpay.create_auto_rsa_client(
+        mchid=MCHID,
+        serial=MCH_SERIAL,
+        private_key=MCH_PRIVATE_KEY_PATH,
+        encrypt_key=API_V3_KEY,
+        refresh_interval_sec=REFRESH_INTERVAL_SEC,
+    )
+
+
+def _build_manual_handler():
+    if not (API_V3_KEY and PLATFORM_CERT_PATH):
+        return None
+    certs = {}
+    from bytedance.douyinpay.utils.pem import add_certificate, get_certificate_serial_number, read_key_data
+
     pem_bytes = read_key_data(PLATFORM_CERT_PATH)
     serial = get_certificate_serial_number(pem_bytes)
-    add_certificate(_certs, pem_bytes, serial)
+    add_certificate(certs, pem_bytes, serial)
+    return douyinpay.CallbackHandler(
+        encrypt_key=API_V3_KEY,
+        certs=certs,
+        sign_type=SIGN_TYPE,
+    )
+
+
+sdk = _build_auto_client()
+manual_handler = None if sdk else _build_manual_handler()
 
 
 @app.route("/callback/douyinpay", methods=["POST"])
 def callback():
-    if not API_V3_KEY:
-        return jsonify({"code": "FAIL", "message": "API_V3_KEY not set"}), 500
+    if sdk is None and manual_handler is None:
+        return jsonify({"code": "FAIL", "message": "callback handler not initialized"}), 500
     headers = dict(request.headers)
     raw_body = request.get_data(as_text=True)
     try:
-        notify = douyinpay.parse_callback(
-            headers=headers,
-            body=raw_body,
-            encrypt_key=API_V3_KEY,
-            certs=_certs,
-            sign_type=SIGN_TYPE,
-        )
+        notify = sdk.parse_callback(headers, raw_body) if sdk else manual_handler.parse(headers, raw_body)
     except douyinpay.DouYinPaySignatureError as e:
         app.logger.warning(f"回调验签失败: {e}")
         return jsonify({"code": "FAIL", "message": "verify signature failed"}), 400
