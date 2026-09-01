@@ -29,6 +29,28 @@ class DouyinPayClient:
     def get_client(self, api_path: Optional[str] = None):
         return PathClient(self._http, api_path) if api_path else self._http
 
+    def request(
+        self,
+        method: str,
+        api_path: str,
+        json: Optional[Any] = None,
+        params: Optional[Any] = None,
+        body: Optional[Union[str, bytes]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        files: Optional[Any] = None,
+        **kwargs,
+    ):
+        return self._http.request(
+            method,
+            api_path,
+            json=json,
+            params=params,
+            body=body,
+            headers=headers,
+            files=files,
+            **kwargs,
+        )
+
     def path(self, api_path: str) -> "PathClient":
         return self.get_client(api_path)
 
