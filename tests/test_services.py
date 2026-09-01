@@ -17,6 +17,8 @@ from bytedance.douyinpay.services import (
     NativePayService,
     PartnerAppPayService,
     PartnerBillService,
+    PartnerPayScoreService,
+    PayScoreService,
     RefundService,
 )
 
@@ -48,6 +50,9 @@ class FakeClient:
 
     def path(self, path):
         return FakePathClient(self, path)
+
+    def request(self, method, path, **kwargs):
+        return self.record(method, path, **kwargs)
 
     def record(self, method, path, **kwargs):
         call = {"method": method, "path": path, **kwargs}
@@ -127,6 +132,7 @@ def test_services_aggregator_exposes_common_services():
     assert services.refund.create({"out_refund_no": "refund-1"})["path"] == "/v1/trade/refund/domestic/refunds"
     assert services.bill.apply_bill({"bill_date": "2026-08-31"})["path"] == "/v1/bill/billapply"
     assert services.partner_bill.apply_trade_bill({"bill_date": "2026-08-31"})["path"] == "/v1/bill/tradebill"
+    assert services.payscore.post("/v1/payscore/custom", {"mchid": "mch-1"})["path"] == "/v1/payscore/custom"
 
 
 def test_bill_service_boundaries_follow_go_services():
@@ -154,6 +160,71 @@ def test_client_services_property_builds_aggregator_once():
 
     assert services.client is client
     assert client.services is services
+
+
+def test_client_request_delegates_to_http_client():
+    class FakeHttpClient:
+        def request(self, method, path, **kwargs):
+            return {"method": method, "path": path, **kwargs}
+
+    client = object.__new__(DouyinPayClient)
+    client._http = FakeHttpClient()
+
+    call = client.request(
+        "POST",
+        "/v1/payscore/custom",
+        json={"mchid": "mch-1"},
+        params={"appid": "app-1"},
+        response_type="json",
+    )
+
+    assert call == {
+        "method": "POST",
+        "path": "/v1/payscore/custom",
+        "json": {"mchid": "mch-1"},
+        "params": {"appid": "app-1"},
+        "body": None,
+        "headers": None,
+        "files": None,
+        "response_type": "json",
+    }
+
+
+def test_payscore_service_uses_merchant_supplied_path_and_payload():
+    client = FakeClient()
+    service = PayScoreService(client)
+
+    call = service.post(
+        "/v1/payscore/serviceorder/{out_order_no}/sync",
+        json={"mchid": "mch-1"},
+        path_params={"out_order_no": "order/with space"},
+        timeout=3,
+    )
+
+    assert call == {
+        "method": "POST",
+        "path": "/v1/payscore/serviceorder/order%2Fwith%20space/sync",
+        "json": {"mchid": "mch-1"},
+        "params": None,
+        "timeout": 3,
+    }
+
+
+def test_partner_payscore_service_uses_merchant_supplied_query():
+    client = FakeClient()
+    service = PartnerPayScoreService(client)
+
+    call = service.get(
+        "/v1/payscore/partner/serviceorder/query",
+        params={"sp_mchid": "sp-1", "sub_mchid": "sub-1"},
+    )
+
+    assert call == {
+        "method": "GET",
+        "path": "/v1/payscore/partner/serviceorder/query",
+        "json": None,
+        "params": {"sp_mchid": "sp-1", "sub_mchid": "sub-1"},
+    }
 
 
 def test_missing_path_param_raises_value_error():

@@ -46,27 +46,4 @@ PARTNER_TERMINATE_CONTRACT = (
 PARTNER_CONTRACT_SCHEDULE = "/v1/agreementauth/partner/schedules/contract-id/{contract_id}/schedule"
 PARTNER_CONTRACT_SCHEDULE_QUERY = "/v1/agreementauth/partner/schedules/contract-id/{contract_id}"
 
-PAYSCORE_CREATE_SERVICE_ORDER = "/v1/payscore/serviceorder/create"
-PAYSCORE_COMPLETE_SERVICE_ORDER = "/v1/payscore/serviceorder/complete"
-PAYSCORE_QUERY_SERVICE_ORDER = "/v1/payscore/serviceorder/query"
-PAYSCORE_CANCEL_SERVICE_ORDER = "/v1/payscore/serviceorder/cancel"
-PAYSCORE_MODIFY_SERVICE_ORDER = "/v1/payscore/serviceorder/modify"
-PAYSCORE_SYNC_SERVICE_ORDER = "/v1/payscore/serviceorder/{out_order_no}/sync"
-PAYSCORE_SERVICE_ORDER_PAY = "/v1/payscore/serviceorder/{out_order_no}/pay"
-PAYSCORE_CREDIT_SIGN_APPLY = "/v1/payscore/permissions"
-PAYSCORE_CREDIT_SIGN_QUERY = "/v1/payscore/permissions/authorization-code/{authorization_code}"
-PAYSCORE_CLOSE_CREDIT_SERVICE = "/v1/payscore/permissions/authorization-code/{authorization_code}/terminate"
-
-PARTNER_PAYSCORE_CREATE_SERVICE_ORDER = "/v1/payscore/partner/serviceorder/create"
-PARTNER_PAYSCORE_COMPLETE_SERVICE_ORDER = "/v1/payscore/partner/serviceorder/complete"
-PARTNER_PAYSCORE_QUERY_SERVICE_ORDER = "/v1/payscore/partner/serviceorder/query"
-PARTNER_PAYSCORE_CANCEL_SERVICE_ORDER = "/v1/payscore/partner/serviceorder/cancel"
-PARTNER_PAYSCORE_MODIFY_SERVICE_ORDER = "/v1/payscore/partner/serviceorder/modify"
-PARTNER_PAYSCORE_SYNC_SERVICE_ORDER = "/v1/payscore/partner/serviceorder/{out_order_no}/sync"
-PARTNER_PAYSCORE_CREDIT_SIGN_APPLY = "/v1/payscore/partner/permissions"
-PARTNER_PAYSCORE_CREDIT_SIGN_QUERY = "/v1/payscore/partner/permissions/authorization-code/{authorization_code}"
-PARTNER_PAYSCORE_CLOSE_CREDIT_SERVICE = (
-    "/v1/payscore/partner/permissions/authorization-code/{authorization_code}/terminate"
-)
-
 PREPAY_CONSULT = "/v1/cashier/prepay/consult"

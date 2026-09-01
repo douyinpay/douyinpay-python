@@ -25,8 +25,8 @@ bytedance.douyinpay>=1.0.0,<2.0.0
 | 回调解密 | AES-256-GCM |
 | 单证书模式 | 使用本地平台证书验签 |
 | 自动证书模式 | SDK 自动下载并定时刷新平台证书 |
-| Service API 调用 | 通过 `sdk.services.xxx` 调用已封装业务接口，覆盖支付、退款、账单、签约、代扣、支付分、收银台、证书等常用能力 |
-| 通用 API 调用 | 通过 `sdk.path("/v1/xxx").get/post/put/patch/delete` 访问暂未封装接口 |
+| Service API 调用 | 通过 `sdk.services.xxx` 调用已封装业务接口，覆盖支付、退款、账单、签约、代扣、收银台、证书等常用能力 |
+| 通用 API 调用 | 通过 `sdk.request(...)` 或 `sdk.path("/v1/xxx").get/post/put/patch/delete` 访问未封装接口，以及 path/参数由商户自定义的接口 |
 
 回调处理通过 `CallbackHandler` 先使用平台证书验签，再使用 APIv3 密钥解密资源内容。
 
@@ -139,7 +139,7 @@ notify = sdk.parse_callback(headers, body)
 
 ## Service 调用
 
-SDK 推荐使用 service 层调用已封装接口。service 只固定 API path、HTTP method、path/query 参数；请求签名、验签、base URL 拼接仍由底层 `HttpClient` 统一处理。
+SDK 推荐对稳定接口使用 service 层调用。service 只固定 API path、HTTP method、path/query 参数；请求签名、验签、base URL 拼接仍由底层 `HttpClient` 统一处理。对于 path 或参数由商户自定义的接口，使用通用 API 调用入口。
 
 | Service | 常用方法 |
 |---------|----------|
@@ -154,7 +154,7 @@ SDK 推荐使用 service 层调用已封装接口。service 只固定 API path�
 | `partner_contract` | `query_contract(plan_id, out_contract_code, ...)`、`terminate_contract(plan_id, out_contract_code, req)` |
 | `deduct` | `deduct(req)`、`pay_apply(req)`、`deduct_notify(req)` |
 | `partner_deduct` | `contract_schedule(contract_id, req)`、`contract_schedule_query(contract_id, ...)` |
-| `payscore` / `partner_payscore` | 服务订单创建/完结/查询/取消/改价/同步，以及授权申请、查询和关闭 |
+| `payscore` / `partner_payscore` | 通用支付分 API 调用入口，商户自行传入 path、params、json |
 | `cashier` | `prepay_consult(req)` |
 | `certificate` | `download_certificates()` |
 
@@ -164,11 +164,21 @@ sdk.services.native_pay.query_order_by_out_trade_no("ORDER-001", mchid="80001234
 sdk.services.refund.create(refund_data)
 ```
 
-## 通用链式调用
-
-对于 SDK 暂未封装的接口，可以继续使用通用 path 调用作为兜底。`path` 只传 API 相对路径，`base_url` / `base_uri` 由 client 配置统一管理：
+支付分等 path/参数不固定的接口使用通用入口：
 
 ```python
+sdk.services.payscore.post("/v1/payscore/serviceorder/create", json=req)
+sdk.services.payscore.get("/v1/payscore/serviceorder/query", params=query)
+sdk.services.partner_payscore.post("/v1/payscore/partner/serviceorder/create", json=req)
+```
+
+## 通用 API 调用
+
+对于 SDK 暂未封装、或 path/参数不适合固化在 SDK 内的接口，可以使用通用调用入口。`path` 只传 API 相对路径，`base_url` / `base_uri` 由 client 配置统一管理：
+
+```python
+sdk.request("POST", "/v1/merchant/xxx", json=json_data)  # 通用直接调用
+sdk.request("GET", "/v1/merchant/xxx", params={"mchid": "80001234567"})
 sdk.path("/v1/merchant/xxx").get(params={"mchid": "80001234567"})  # GET + Query
 sdk.path("/v1/merchant/xxx").put(json_data)  # PUT
 sdk.path("/v1/resource/xxx").patch(json_data)  # PATCH（已支持）
