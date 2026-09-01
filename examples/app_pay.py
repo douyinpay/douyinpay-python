@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+
 from bytedance import douyinpay
 
 MCHID = os.getenv("DOUYINPAY_MCHID", "")
@@ -32,7 +33,7 @@ def main():
         "ip": os.getenv("DOUYINPAY_CLIENT_IP", "127.0.0.1"),
         "notify_url": os.getenv("DOUYINPAY_NOTIFY_URL", "https://example.com/callback"),
     }
-    resp = sdk.services.app_pay.prepay(req)
+    resp = sdk.request("POST", "/v1/trade/transactions/app", json=req)
     print(f"App支付下单: status={resp.status_code}, data={resp.data}")
 
 

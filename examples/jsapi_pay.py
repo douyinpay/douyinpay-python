@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+
 from bytedance import douyinpay
 
 MCHID = os.getenv("DOUYINPAY_MCHID", "")
@@ -34,7 +35,7 @@ def main():
         "notify_url": os.getenv("DOUYINPAY_NOTIFY_URL", "https://example.com/callback"),
         "payer": {"openid": OPENID},
     }
-    resp = sdk.services.jsapi_pay.prepay(req)
+    resp = sdk.request("POST", "/v1/trade/transactions/jsapi", json=req)
     print(f"JSAPI支付下单: status={resp.status_code}, data={resp.data}")
 
 

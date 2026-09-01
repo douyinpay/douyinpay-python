@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+
 from bytedance import douyinpay
 
 MCHID = os.getenv("DOUYINPAY_MCHID", "")
@@ -37,7 +38,7 @@ def main():
         "notify_url": os.getenv("DOUYINPAY_NOTIFY_URL", "https://example.com/callback"),
     }
 
-    resp = sdk.services.native_pay.prepay(req_data)
+    resp = sdk.request("POST", "/v1/trade/transactions/native", json=req_data)
     print("Native支付下单成功:")
     print(f"  status_code: {resp.status_code}")
     print(f"  data: {resp.data}")

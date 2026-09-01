@@ -25,8 +25,8 @@ bytedance.douyinpay>=1.0.0,<2.0.0
 | 回调解密 | AES-256-GCM |
 | 单证书模式 | 使用本地平台证书验签 |
 | 自动证书模式 | SDK 自动下载并定时刷新平台证书 |
-| Service API 调用 | 通过 `sdk.services.xxx` 调用已封装业务接口，覆盖支付、退款、账单、签约、代扣、收银台、证书等常用能力 |
-| 通用 API 调用 | 通过 `sdk.request(...)` 或 `sdk.path("/v1/xxx").get/post/put/patch/delete` 访问未封装接口，以及 path/参数由商户自定义的接口 |
+| 通用 API 调用 | 通过 `sdk.request(...)` 或 `sdk.path("/v1/xxx").get/post/put/patch/delete` 调用接口，商户自行传入 path 和参数 |
+| 薄 Service 入口 | `sdk.services` 仅提供通用 `request/get/post/put/patch/delete` 包装，不维护业务接口字段列表 |
 
 回调处理通过 `CallbackHandler` 先使用平台证书验签，再使用 APIv3 密钥解密资源内容。
 
@@ -65,7 +65,7 @@ sdk = douyinpay.create_rsa_client(
     encrypt_key="YOUR_API_V3_KEY",  # 需要用 sdk.parse_callback() 时传入
 )
 
-resp = sdk.services.native_pay.prepay({
+resp = sdk.request("POST", "/v1/trade/transactions/native", json={
     "mchid": "80001234567",
     "appid": "your_appid",
     "description": "Native支付示例",
@@ -93,7 +93,7 @@ sdk = douyinpay.create_auto_rsa_client(
     encrypt_key="YOUR_API_V3_KEY",  # 32字节 APIv3 密钥
 )
 try:
-    resp = sdk.services.native_pay.prepay({...})
+    resp = sdk.request("POST", "/v1/trade/transactions/native", json={...})
 finally:
     if sdk.certificate_manager:
         sdk.certificate_manager.stop()
@@ -137,48 +137,25 @@ def callback():
 notify = sdk.parse_callback(headers, body)
 ```
 
-## Service 调用
-
-SDK 推荐对稳定接口使用 service 层调用。service 只固定 API path、HTTP method、path/query 参数；请求签名、验签、base URL 拼接仍由底层 `HttpClient` 统一处理。对于 path 或参数由商户自定义的接口，使用通用 API 调用入口。
-
-| Service | 常用方法 |
-|---------|----------|
-| `app_pay` / `h5_pay` / `jsapi_pay` / `native_pay` | `prepay(req)`、`close_order(out_trade_no, ...)`、`query_order_by_id(transaction_id, ...)`、`query_order_by_out_trade_no(out_trade_no, ...)` |
-| `contract_order_pay` / `credit_contract_order_pay` | `prepay(req)`、`close_order(...)`、`query_order_by_id(...)`、`query_order_by_out_trade_no(...)` |
-| `partner_app_pay` / `partner_h5_pay` / `partner_jsapi_pay` / `partner_native_pay` | 服务商下单、关单、按交易单号/商户订单号查询 |
-| `partner_contract_pay` | `contract_order(req)`、`pay_apply(req)` |
-| `refund` | `create(req)`、`query_by_out_refund_no(out_refund_no, ...)` |
-| `bill` | `apply_bill(params)`、`apply_fund_flow_bill(params)`、`apply_split_bill(params)` |
-| `partner_bill` | `apply_trade_bill(params)`、`apply_fund_flow_bill(params)`、`apply_split_bill(params)` |
-| `contract` | `query_contract(req)`、`delete_contract(req)`、`pre_entrust_web(req)`、`h5_entrust_web(req)` |
-| `partner_contract` | `query_contract(plan_id, out_contract_code, ...)`、`terminate_contract(plan_id, out_contract_code, req)` |
-| `deduct` | `deduct(req)`、`pay_apply(req)`、`deduct_notify(req)` |
-| `partner_deduct` | `contract_schedule(contract_id, req)`、`contract_schedule_query(contract_id, ...)` |
-| `payscore` / `partner_payscore` | 通用支付分 API 调用入口，商户自行传入 path、params、json |
-| `cashier` | `prepay_consult(req)` |
-| `certificate` | `download_certificates()` |
-
-```python
-sdk.services.native_pay.prepay(json_data)
-sdk.services.native_pay.query_order_by_out_trade_no("ORDER-001", mchid="80001234567")
-sdk.services.refund.create(refund_data)
-```
-
-支付分等 path/参数不固定的接口使用通用入口：
-
-```python
-sdk.services.payscore.post("/v1/payscore/serviceorder/create", json=req)
-sdk.services.payscore.get("/v1/payscore/serviceorder/query", params=query)
-sdk.services.partner_payscore.post("/v1/payscore/partner/serviceorder/create", json=req)
-```
-
 ## 通用 API 调用
 
-对于 SDK 暂未封装、或 path/参数不适合固化在 SDK 内的接口，可以使用通用调用入口。`path` 只传 API 相对路径，`base_url` / `base_uri` 由 client 配置统一管理：
+SDK 不维护业务接口字段列表。商户根据接口文档自行传入 API 相对路径、请求体和查询参数；请求签名、验签、base URL 拼接仍由底层 `HttpClient` 统一处理：
 
 ```python
 sdk.request("POST", "/v1/merchant/xxx", json=json_data)  # 通用直接调用
 sdk.request("GET", "/v1/merchant/xxx", params={"mchid": "80001234567"})
+
+# sdk.services 是同一套通用调用能力的薄封装
+sdk.services.post("/v1/trade/transactions/native", json=json_data)
+sdk.services.get("/v1/trade/transactions/out-trade-no/ORDER-001", params={"mchid": "80001234567"})
+
+# 需要 path 参数转义时，可以使用 path_params
+sdk.services.post(
+    "/v1/payscore/serviceorder/{out_order_no}/sync",
+    json=json_data,
+    path_params={"out_order_no": "ORDER-001"},
+)
+
 sdk.path("/v1/merchant/xxx").get(params={"mchid": "80001234567"})  # GET + Query
 sdk.path("/v1/merchant/xxx").put(json_data)  # PUT
 sdk.path("/v1/resource/xxx").patch(json_data)  # PATCH（已支持）
