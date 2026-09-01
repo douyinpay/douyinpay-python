@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+
 from bytedance import douyinpay
 
 MCHID = os.getenv("DOUYINPAY_MCHID", "")
@@ -37,7 +38,7 @@ def main():
             "h5_info": {"type": "Wap"},
         },
     }
-    resp = sdk.services.h5_pay.prepay(req)
+    resp = sdk.request("POST", "/v1/trade/transactions/h5", json=req)
     print(f"H5支付下单: status={resp.status_code}, data={resp.data}")
 
 
