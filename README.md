@@ -86,17 +86,27 @@ print(resp.status_code, resp.data)
 ```python
 from bytedance import douyinpay
 
+# 建议在应用启动时初始化一次，并在下单、查单、退款、回调解析等场景复用同一个 client。
 sdk = douyinpay.create_auto_rsa_client(
     mchid="80001234567",
     serial="MCH_SERIAL_NO",
     private_key="/path/to/merchant_private_key.pem",
     encrypt_key="YOUR_API_V3_KEY",  # 32字节 APIv3 密钥
 )
-try:
-    resp = sdk.request("POST", "/v1/trade/transactions/native", json={...})
-finally:
-    if sdk.certificate_manager:
-        sdk.certificate_manager.stop()
+
+resp = sdk.request("POST", "/v1/trade/transactions/native", json={...})
+```
+
+联调自动证书刷新时，可以临时把刷新间隔调短，观察 SDK 是否会自动请求平台证书接口；生产建议使用默认 24h：
+
+```python
+sdk = douyinpay.create_auto_rsa_client(
+    mchid="80001234567",
+    serial="MCH_SERIAL_NO",
+    private_key="/path/to/merchant_private_key.pem",
+    encrypt_key="YOUR_API_V3_KEY",
+    refresh_interval_sec=10,  # 仅用于联调验证
+)
 ```
 
 ## 回调处理
@@ -104,16 +114,9 @@ finally:
 HTTP 回调入口由业务自己的 Web 框架负责。SDK 不启动回调服务，只负责对抖音支付回调请求做验签、解密和解析：
 
 ```python
-from bytedance import douyinpay
-
-sdk = douyinpay.create_auto_rsa_client(
-    mchid="80001234567",
-    serial="MCH_SERIAL_NO",
-    private_key="/path/to/merchant_private_key.pem",
-    encrypt_key="YOUR_API_V3_KEY",
-)
-
-def handle_douyinpay_callback(headers, body):
+def handle_douyinpay_callback(headers, body, sdk):
+    # sdk 是应用启动时已经初始化好的 DouyinPayClient，
+    # 和下单、查单、退款等请求复用同一个实例。
     notify = sdk.parse_callback(headers, body)
     event_type = notify.event_type
     content = notify.content or {}
@@ -128,17 +131,7 @@ def handle_douyinpay_callback(headers, body):
 
 > **安全红线**：回调必须**先验签**再解密，再处理业务；务必做幂等处理。
 
-自动证书模式下，SDK 会复用 client 里的证书管理器获取最新平台证书，不需要业务额外维护 `PLATFORM_CERTS`。联调时可以临时把刷新间隔调短，确认会自动请求平台证书接口：
-
-```python
-sdk = douyinpay.create_auto_rsa_client(
-    mchid="80001234567",
-    serial="MCH_SERIAL_NO",
-    private_key="/path/to/merchant_private_key.pem",
-    encrypt_key="YOUR_API_V3_KEY",
-    refresh_interval_sec=10,  # 仅用于联调验证；生产建议使用默认 24h
-)
-```
+自动证书模式下，`sdk.parse_callback(...)` 会复用 client 里的证书管理器获取最新平台证书，不需要业务额外维护 `PLATFORM_CERTS`。
 
 如果使用单证书模式，建议在初始化 client 时传入 `encrypt_key`，然后沿用同一个回调写法：
 
