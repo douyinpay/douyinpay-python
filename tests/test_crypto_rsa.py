@@ -4,23 +4,22 @@
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
-
 from bytedance.douyinpay.crypto.rsa import (
     load_rsa_private_key, load_rsa_public_key,
     rsa_sign, rsa_verify, RsaSigner,
 )
+from tests.helpers import CERT_PEM, MCH_PRIV
 
 
 def test_rsa_load_keys():
-    priv = load_rsa_private_key(os.path.join(FIXTURES, "rsa_merchant_key.pem"))
+    priv = load_rsa_private_key(MCH_PRIV)
     assert priv is not None
-    pub = load_rsa_public_key(os.path.join(FIXTURES, "rsa_platform_cert.pem"))
+    pub = load_rsa_public_key(CERT_PEM)
     assert pub is not None
 
 
 def test_rsa_sign_and_verify_success():
-    priv = load_rsa_private_key(os.path.join(FIXTURES, "rsa_merchant_key.pem"))
+    priv = load_rsa_private_key(MCH_PRIV)
     msg = "POST\n/v1/x\n1\na\n{}\n"
     sig = rsa_sign(msg, priv)
     assert isinstance(sig, str) and len(sig) > 0
@@ -34,7 +33,7 @@ def test_rsa_sign_and_verify_success():
 
 
 def test_rsa_verify_tampered_message_fails():
-    priv = load_rsa_private_key(os.path.join(FIXTURES, "rsa_merchant_key.pem"))
+    priv = load_rsa_private_key(MCH_PRIV)
     msg = "test message"
     sig = rsa_sign(msg, priv)
     from cryptography.hazmat.primitives import serialization
@@ -47,7 +46,7 @@ def test_rsa_verify_tampered_message_fails():
 
 
 def test_rsa_signer_class():
-    priv = load_rsa_private_key(os.path.join(FIXTURES, "rsa_merchant_key.pem"))
+    priv = load_rsa_private_key(MCH_PRIV)
     from cryptography.hazmat.primitives import serialization
     pub_raw = priv.public_key().public_bytes(
         serialization.Encoding.PEM,
