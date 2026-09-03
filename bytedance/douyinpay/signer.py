@@ -15,7 +15,7 @@ from .constants import (
     ERR_RES_PLATFORM_SERIAL_NOT_FOUND,
     ERR_RES_SIGNATURE_VERIFY_FAILED,
 )
-from .errors import DouYinPaySignatureError, DouYinPayError
+from .errors import DouYinPaySignatureError, DouYinPayCertificateSerialNotFound, DouYinPayError
 from .formatter import (
     generate_nonce,
     generate_timestamp,
@@ -102,7 +102,7 @@ def verify_response(
     if offset > max_clock_offset:
         raise DouYinPaySignatureError(ERR_RES_TIMESTAMP_OFFSET % max_clock_offset)
     if serial not in platform_certs:
-        raise DouYinPaySignatureError(ERR_RES_PLATFORM_SERIAL_NOT_FOUND % serial)
+        raise DouYinPayCertificateSerialNotFound(serial, ERR_RES_PLATFORM_SERIAL_NOT_FOUND % serial)
     cert_pem = platform_certs[serial]
     public_key = _load_public_key_from_cert(cert_pem, sign_type)
     message = build_response_verify_message(ts_int, nonce, body or "")

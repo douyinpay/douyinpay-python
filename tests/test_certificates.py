@@ -158,6 +158,45 @@ def test_auto_manager_start_with_zero_interval_does_not_schedule(httpx_mock):
         mgr.stop()
 
 
+def test_auto_manager_refresh_for_serial_known_serial_is_noop(httpx_mock):
+    ct = aes_encrypt(CERT_PEM_STR, AES_KEY, b"0123456789ab", aad="cert")
+    httpx_mock.add_callback(_make_resp_factory(ct, "AEAD_AES_256_GCM"))
+    mgr = AutoCertificateManager(
+        mchid="mch1", serial="mch-s",
+        private_key=MCH_PRIV, encrypt_key=AES_KEY,
+        sign_type=SignType.RSA, encrypt_type=EncryptType.AES,
+        refresh_interval_sec=3600,
+    )
+    try:
+        certs = mgr.ensure_ready()
+        assert PLAT_SERIAL in certs
+        # 已缓存 serial：必须 no-op，不发起任何网络请求（httpx_mock 未再注册响应，发请求即报错）
+        certs_again = mgr.refresh_for_serial(PLAT_SERIAL)
+        assert PLAT_SERIAL in certs_again
+    finally:
+        mgr.stop()
+
+
+def test_auto_manager_refresh_for_serial_unknown_serial_triggers_refresh(httpx_mock):
+    ct = aes_encrypt(CERT_PEM_STR, AES_KEY, b"0123456789ab", aad="cert")
+    httpx_mock.add_callback(_make_resp_factory(ct, "AEAD_AES_256_GCM", cert_no="SERIAL_INITIAL"))
+    httpx_mock.add_callback(_make_resp_factory(ct, "AEAD_AES_256_GCM", cert_no="SERIAL_UPDATED"))
+    mgr = AutoCertificateManager(
+        mchid="mch1", serial="mch-s",
+        private_key=MCH_PRIV, encrypt_key=AES_KEY,
+        sign_type=SignType.RSA, encrypt_type=EncryptType.AES,
+        refresh_interval_sec=3600,
+    )
+    try:
+        certs = mgr.ensure_ready()
+        assert "SERIAL_INITIAL" in certs
+        refreshed = mgr.refresh_for_serial("SERIAL_UNKNOWN")
+        assert "SERIAL_UPDATED" in refreshed
+        assert "SERIAL_INITIAL" not in refreshed
+    finally:
+        mgr.stop()
+
+
 def test_auto_manager_concurrent_refresh_dedup(httpx_mock):
     call_count = [0]
     ct = aes_encrypt(CERT_PEM_STR, AES_KEY, b"0123456789ab", aad="cert")

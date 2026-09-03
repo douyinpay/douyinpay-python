@@ -10,6 +10,7 @@ from .crypto.rsa import load_rsa_private_key, load_rsa_public_key, rsa_encrypt, 
 from .errors import (
     DouYinPayAPIError,
     DouYinPayCertificateError,
+    DouYinPayCertificateSerialNotFound,
     DouYinPayError,
     DouYinPayInvalidArgumentError,
     DouYinPaySignatureError,
@@ -63,6 +64,7 @@ __all__ = [
     "DouYinPaySignatureError",
     "DouYinPayAPIError",
     "DouYinPayCertificateError",
+    "DouYinPayCertificateSerialNotFound",
     "build_sdk_agent",
     "USER_AGENT",
 ]

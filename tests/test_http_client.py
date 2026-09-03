@@ -6,6 +6,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
+import pytest
 import httpx
 from datetime import datetime, timedelta
 from cryptography import x509
@@ -346,3 +347,115 @@ def test_skip_verify(httpx_mock):
     finally:
         raw.close()
     assert r.data == {"a": 1}
+
+
+class _OnDemandCertificateProvider:
+    """初始无证书；refresh_for_serial 被调用时注入平台证书，模拟按需刷新闭环。"""
+
+    def __init__(self, certs_after_refresh):
+        self._certs = {}
+        self._certs_after_refresh = certs_after_refresh
+        self.refreshed_serials = []
+
+    def get_certs(self):
+        return dict(self._certs)
+
+    def refresh_for_serial(self, serial):
+        self.refreshed_serials.append(serial)
+        self._certs = dict(self._certs_after_refresh)
+        return dict(self._certs)
+
+
+def test_response_verify_refreshes_on_unknown_serial(httpx_mock):
+    import time as _time
+
+    def handler(request):
+        resp_body = '{"ok":true}'
+        priv = load_rsa_private_key(open(PRIV_PATH, "rb").read())
+        ts = int(_time.time())
+        msg = build_response_verify_message(ts, "n", resp_body)
+        sig = rsa_sign(msg, priv)
+        return httpx.Response(
+            200,
+            headers={
+                Headers.Timestamp: str(ts),
+                Headers.Nonce: "n",
+                Headers.Signature: sig,
+                Headers.Serial: PLAT_SERIAL,
+            },
+            content=resp_body,
+        )
+
+    httpx_mock.add_callback(handler)
+
+    provider = _OnDemandCertificateProvider({PLAT_SERIAL: CERT_PEM})
+    cfg = DouYinPayConfig(
+        mchid=MCHID,
+        serial=MCH_SERIAL,
+        private_key=open(PRIV_PATH, "rb").read(),
+        certs={},
+        sign_type=SignType.RSA,
+        encrypt_type=EncryptType.AES,
+        encrypt_key=b"a" * 32,
+        certificate_provider=provider,
+        base_url="https://api.test.local",
+    )
+    raw = httpx.Client()
+    cfg.http_client = raw
+    cli = HttpClient(cfg)
+    try:
+        r = cli.get("/v1/ping")
+    finally:
+        raw.close()
+    assert provider.refreshed_serials == [PLAT_SERIAL]
+    assert r.status_code == 200
+    assert r.data == {"ok": True}
+
+
+def test_response_verify_raises_when_provider_has_no_refresh(httpx_mock):
+    import time as _time
+    from bytedance.douyinpay.errors import DouYinPayCertificateSerialNotFound
+
+    def handler(request):
+        resp_body = '{"ok":true}'
+        priv = load_rsa_private_key(open(PRIV_PATH, "rb").read())
+        ts = int(_time.time())
+        msg = build_response_verify_message(ts, "n", resp_body)
+        sig = rsa_sign(msg, priv)
+        return httpx.Response(
+            200,
+            headers={
+                Headers.Timestamp: str(ts),
+                Headers.Nonce: "n",
+                Headers.Signature: sig,
+                Headers.Serial: PLAT_SERIAL,
+            },
+            content=resp_body,
+        )
+
+    httpx_mock.add_callback(handler)
+
+    class _ReadOnlyProvider:
+        def get_certs(self):
+            return {}
+
+    cfg = DouYinPayConfig(
+        mchid=MCHID,
+        serial=MCH_SERIAL,
+        private_key=open(PRIV_PATH, "rb").read(),
+        certs={},
+        sign_type=SignType.RSA,
+        encrypt_type=EncryptType.AES,
+        encrypt_key=b"a" * 32,
+        certificate_provider=_ReadOnlyProvider(),
+        base_url="https://api.test.local",
+    )
+    raw = httpx.Client()
+    cfg.http_client = raw
+    cli = HttpClient(cfg)
+    try:
+        with pytest.raises(DouYinPayCertificateSerialNotFound) as exc_info:
+            cli.get("/v1/ping")
+        assert exc_info.value.serial == PLAT_SERIAL
+    finally:
+        raw.close()
