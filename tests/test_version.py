@@ -9,9 +9,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from bytedance.douyinpay.version import SDK_VERSION, SDK_LANG, SDK_LANG_VERSION, build_sdk_agent, USER_AGENT
 
 
-FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
-
-
 def test_sdk_version_format():
     parts = SDK_VERSION.split(".")
     assert len(parts) == 3

@@ -4,25 +4,18 @@
 import os, sys, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
-
 import pytest
 import httpx
 from bytedance.douyinpay.config import DouYinPayConfig
 from bytedance.douyinpay.constants import SignType, EncryptType, GET_PLATFORM_CERTS_PATH, Headers
 from bytedance.douyinpay.certificates import AutoCertificateManager, download_platform_certificates
 from bytedance.douyinpay.crypto.aes import aes_encrypt
-from bytedance.douyinpay.utils.pem import get_certificate_serial_number
 from bytedance.douyinpay.crypto.rsa import load_rsa_private_key, rsa_sign
 from bytedance.douyinpay.formatter import build_response_verify_message
+from tests.helpers import CERT_PEM_STR, MCH_PRIV, PLAT_SERIAL
 
 
-PRIV_PATH = os.path.join(FIXTURES, "rsa_merchant_key.pem")
-CERT_PATH = os.path.join(FIXTURES, "rsa_platform_cert.pem")
-CERT_PEM_STR = open(CERT_PATH, "r").read()
-PLAT_SERIAL = get_certificate_serial_number(CERT_PATH)
 AES_KEY = b"a" * 32
-MCH_PRIV = open(PRIV_PATH, "rb").read()
 
 
 def _make_resp_factory(cipher_text, algo, cert_no=PLAT_SERIAL, status=200, nonce=None, aad="cert"):

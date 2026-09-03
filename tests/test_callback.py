@@ -4,8 +4,6 @@
 import os, sys, json, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
-
 import pytest
 from bytedance.douyinpay.callback import CallbackHandler, parse_callback, NotifyRequest
 from bytedance.douyinpay.client import DouyinPayClient
@@ -15,14 +13,10 @@ from bytedance.douyinpay.crypto.rsa import load_rsa_private_key, rsa_sign
 from bytedance.douyinpay.crypto.aes import aes_encrypt
 from bytedance.douyinpay.errors import DouYinPayError
 from bytedance.douyinpay.factory import create_rsa_client
-from bytedance.douyinpay.utils.pem import get_certificate_serial_number
 from bytedance.douyinpay.formatter import build_response_verify_message
+from tests.helpers import CERT_PEM, MCH_PRIV, PLAT_SERIAL
 
 
-PRIV_PATH = os.path.join(FIXTURES, "rsa_merchant_key.pem")
-CERT_PATH = os.path.join(FIXTURES, "rsa_platform_cert.pem")
-CERT_PEM = open(CERT_PATH, "rb").read()
-PLAT_SERIAL = get_certificate_serial_number(CERT_PATH)
 AES_KEY = b"k" * 32
 
 
@@ -34,8 +28,8 @@ class StaticCertificateProvider:
         return dict(self._certs)
 
 
-def _make_callback(body: str, sign_priv_path=PRIV_PATH) -> dict:
-    priv = load_rsa_private_key(open(sign_priv_path, "rb").read())
+def _make_callback(body: str, sign_priv_key=MCH_PRIV) -> dict:
+    priv = load_rsa_private_key(sign_priv_key)
     ts = int(time.time())
     nonce = "cb-nonce"
     msg = build_response_verify_message(ts, nonce, body)
@@ -92,7 +86,7 @@ def test_callback_handler_from_client_uses_client_certs():
     client = create_rsa_client(
         "mch-1",
         "MCH-SER-001",
-        open(PRIV_PATH, "rb").read(),
+        MCH_PRIV,
         CERT_PEM,
         encrypt_key=AES_KEY,
     )
@@ -110,7 +104,7 @@ def test_client_parse_callback_uses_client_config():
     client = create_rsa_client(
         "mch-1",
         "MCH-SER-001",
-        open(PRIV_PATH, "rb").read(),
+        MCH_PRIV,
         CERT_PEM,
         encrypt_key=AES_KEY,
     )
@@ -127,7 +121,7 @@ def test_parse_callback_accepts_client_option():
     client = create_rsa_client(
         "mch-1",
         "MCH-SER-001",
-        open(PRIV_PATH, "rb").read(),
+        MCH_PRIV,
         CERT_PEM,
         encrypt_key=AES_KEY,
     )
@@ -144,7 +138,7 @@ def test_client_parse_callback_uses_certificate_provider():
     client = DouyinPayClient(DouYinPayConfig(
         mchid="mch-1",
         serial="MCH-SER-001",
-        private_key=open(PRIV_PATH, "rb").read(),
+        private_key=MCH_PRIV,
         certs={},
         certificate_provider=StaticCertificateProvider({PLAT_SERIAL: CERT_PEM}),
         encrypt_key=AES_KEY,
@@ -160,7 +154,7 @@ def test_parse_callback_from_client_requires_encrypt_key():
     client = create_rsa_client(
         "mch-1",
         "MCH-SER-001",
-        open(PRIV_PATH, "rb").read(),
+        MCH_PRIV,
         CERT_PEM,
     )
     try:

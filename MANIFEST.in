@@ -1,0 +1,8 @@
+include README.md
+include CHANGELOG.md
+include LICENSE
+include pyproject.toml
+recursive-include bytedance *.py
+prune examples
+prune tests
+global-exclude __pycache__ *.py[cod] .DS_Store

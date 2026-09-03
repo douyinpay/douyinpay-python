@@ -4,8 +4,6 @@
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
-
 import pytest
 import httpx
 from datetime import datetime, timedelta
@@ -22,19 +20,16 @@ from bytedance.douyinpay.crypto.rsa import load_rsa_private_key, load_rsa_public
 from bytedance.douyinpay.utils.pem import get_certificate_serial_number
 from bytedance.douyinpay.utils.http import request_target_from_url
 from bytedance.douyinpay.formatter import build_request_sign_message, build_response_verify_message
+from tests.helpers import CERT_PEM, MCH_PRIV, PLAT_SERIAL
 
 
-PRIV_PATH = os.path.join(FIXTURES, "rsa_merchant_key.pem")
-CERT_PATH = os.path.join(FIXTURES, "rsa_platform_cert.pem")
-CERT_PEM = open(CERT_PATH, "rb").read()
-PLAT_SERIAL = get_certificate_serial_number(CERT_PATH)
 MCHID = "mch-test"
 MCH_SERIAL = "MCH-SER-001"
 
 BASE_CONF = dict(
     mchid=MCHID,
     serial=MCH_SERIAL,
-    private_key=open(PRIV_PATH, "rb").read(),
+    private_key=MCH_PRIV,
     certs={PLAT_SERIAL: CERT_PEM},
     sign_type=SignType.RSA,
     encrypt_type=EncryptType.AES,
@@ -96,7 +91,7 @@ def test_authorization_header(httpx_mock):
         captured["timestamp"] = request.headers.get(Headers.Timestamp)
         captured["nonce"] = request.headers.get(Headers.Nonce)
         resp_body = '{"ok":1}'
-        priv = load_rsa_private_key(open(PRIV_PATH, "rb").read())
+        priv = load_rsa_private_key(MCH_PRIV)
         ts = int(_time.time())
         nonce = "test-nonce"
         msg = build_response_verify_message(ts, nonce, resp_body)
@@ -207,7 +202,7 @@ def test_patch_method_supported(httpx_mock):
         methods.append(request.method)
         import time as _time
         resp_body = '{"patched":true}'
-        priv = load_rsa_private_key(open(PRIV_PATH, "rb").read())
+        priv = load_rsa_private_key(MCH_PRIV)
         ts = int(_time.time())
         msg = build_response_verify_message(ts, "n", resp_body)
         sig = rsa_sign(msg, priv)
@@ -237,7 +232,7 @@ def test_on_request_callback(httpx_mock):
     def handler(request):
         import time as _time
         resp_body = "{}"
-        priv = load_rsa_private_key(open(PRIV_PATH, "rb").read())
+        priv = load_rsa_private_key(MCH_PRIV)
         ts = int(_time.time())
         msg = build_response_verify_message(ts, "n", resp_body)
         sig = rsa_sign(msg, priv)
@@ -307,7 +302,7 @@ def test_base_uri_alias(httpx_mock):
     def handler(request):
         assert str(request.url).startswith("https://alias.test.local/")
         resp_body = "{}"
-        priv = load_rsa_private_key(open(PRIV_PATH, "rb").read())
+        priv = load_rsa_private_key(MCH_PRIV)
         ts = int(_time.time())
         msg = build_response_verify_message(ts, "n", resp_body)
         sig = rsa_sign(msg, priv)
@@ -371,7 +366,7 @@ def test_response_verify_refreshes_on_unknown_serial(httpx_mock):
 
     def handler(request):
         resp_body = '{"ok":true}'
-        priv = load_rsa_private_key(open(PRIV_PATH, "rb").read())
+        priv = load_rsa_private_key(MCH_PRIV)
         ts = int(_time.time())
         msg = build_response_verify_message(ts, "n", resp_body)
         sig = rsa_sign(msg, priv)
@@ -392,7 +387,7 @@ def test_response_verify_refreshes_on_unknown_serial(httpx_mock):
     cfg = DouYinPayConfig(
         mchid=MCHID,
         serial=MCH_SERIAL,
-        private_key=open(PRIV_PATH, "rb").read(),
+        private_key=MCH_PRIV,
         certs={},
         sign_type=SignType.RSA,
         encrypt_type=EncryptType.AES,
@@ -418,7 +413,7 @@ def test_response_verify_raises_when_provider_has_no_refresh(httpx_mock):
 
     def handler(request):
         resp_body = '{"ok":true}'
-        priv = load_rsa_private_key(open(PRIV_PATH, "rb").read())
+        priv = load_rsa_private_key(MCH_PRIV)
         ts = int(_time.time())
         msg = build_response_verify_message(ts, "n", resp_body)
         sig = rsa_sign(msg, priv)
@@ -442,7 +437,7 @@ def test_response_verify_raises_when_provider_has_no_refresh(httpx_mock):
     cfg = DouYinPayConfig(
         mchid=MCHID,
         serial=MCH_SERIAL,
-        private_key=open(PRIV_PATH, "rb").read(),
+        private_key=MCH_PRIV,
         certs={},
         sign_type=SignType.RSA,
         encrypt_type=EncryptType.AES,

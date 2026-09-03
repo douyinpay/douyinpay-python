@@ -4,8 +4,6 @@
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
-
 import pytest
 import httpx
 from bytedance.douyinpay.factory import (
@@ -14,16 +12,13 @@ from bytedance.douyinpay.factory import (
 )
 from bytedance.douyinpay.constants import SignType, EncryptType, SdkAgentType
 from bytedance.douyinpay.errors import DouYinPayInvalidArgumentError
-
-
-PRIV_PATH = os.path.join(FIXTURES, "rsa_merchant_key.pem")
-CERT_PATH = os.path.join(FIXTURES, "rsa_platform_cert.pem")
+from tests.helpers import CERT_PEM, MCH_PRIV, PLAT_SERIAL
 
 MCH_SERIAL = "MCH-SER-001"
 
 
 def test_create_rsa_client_default_agent():
-    c = create_rsa_client("mch-1", MCH_SERIAL, open(PRIV_PATH, "rb").read(), open(CERT_PATH, "rb").read())
+    c = create_rsa_client("mch-1", MCH_SERIAL, MCH_PRIV, CERT_PEM)
     assert c.config.sign_type == SignType.RSA
     assert c.config.encrypt_type == EncryptType.AES
     assert c.config.sdk_agent == SdkAgentType.RSA
@@ -33,24 +28,22 @@ def test_create_rsa_client_default_agent():
 
 
 def test_create_client_alias_to_rsa():
-    c = create_client("mch-1", MCH_SERIAL, open(PRIV_PATH, "rb").read(), open(CERT_PATH, "rb").read())
+    c = create_client("mch-1", MCH_SERIAL, MCH_PRIV, CERT_PEM)
     assert c.config.sign_type == SignType.RSA
 
 
 def test_create_rsa_client_rejects_missing_mchid():
     with pytest.raises(DouYinPayInvalidArgumentError):
-        create_rsa_client("", MCH_SERIAL, open(PRIV_PATH).read(), open(CERT_PATH).read())
+        create_rsa_client("", MCH_SERIAL, MCH_PRIV, CERT_PEM)
 
 
 def test_create_rsa_client_rejects_cert_contains_merchant_serial():
-    from bytedance.douyinpay.utils.pem import get_certificate_serial_number
-    plat_serial = get_certificate_serial_number(CERT_PATH)
     with pytest.raises(DouYinPayInvalidArgumentError):
-        create_rsa_client("mch1", plat_serial, open(PRIV_PATH).read(), open(CERT_PATH).read())
+        create_rsa_client("mch1", PLAT_SERIAL, MCH_PRIV, CERT_PEM)
 
 
 def test_create_rsa_client_custom_sdk_agent():
-    c = create_rsa_client("mch-1", MCH_SERIAL, open(PRIV_PATH, "rb").read(), open(CERT_PATH, "rb").read(), sdk_agent="CustomRSA")
+    c = create_rsa_client("mch-1", MCH_SERIAL, MCH_PRIV, CERT_PEM, sdk_agent="CustomRSA")
     assert c.config.sdk_agent == "CustomRSA"
 
 
@@ -58,8 +51,8 @@ def test_create_rsa_client_accepts_api_base_alias():
     c = create_rsa_client(
         "mch-1",
         MCH_SERIAL,
-        open(PRIV_PATH, "rb").read(),
-        open(CERT_PATH, "rb").read(),
+        MCH_PRIV,
+        CERT_PEM,
         api_base="https://api.alias.test/",
     )
     try:
@@ -74,7 +67,7 @@ def test_create_auto_rsa_requires_encrypt_key(httpx_mock):
     c = None
     try:
         try:
-            c = create_auto_rsa_client("mch-1", MCH_SERIAL, open(PRIV_PATH, "rb").read(), encrypt_key="", http_client=httpx.Client())
+            c = create_auto_rsa_client("mch-1", MCH_SERIAL, MCH_PRIV, encrypt_key="", http_client=httpx.Client())
         except DouYinPayInvalidArgumentError:
             return
         except Exception:
@@ -91,7 +84,7 @@ def test_create_auto_rsa_client_with_manager(httpx_mock):
     result = create_auto_rsa_client_with_manager(
         "mch-1",
         MCH_SERIAL,
-        open(PRIV_PATH, "rb").read(),
+        MCH_PRIV,
         encrypt_key="a" * 32,
         refresh_interval_sec=0,
         http_client=raw_client,
