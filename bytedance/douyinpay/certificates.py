@@ -121,6 +121,14 @@ class AutoCertificateManager(CertificateProvider):
                 return dict(self._certs)
         return self.refresh(verify_response=False)
 
+    def refresh_for_serial(self, serial: str) -> Dict[str, KeyLike]:
+        if not serial:
+            return self.get_certs()
+        with self._lock:
+            if serial in self._certs:
+                return dict(self._certs)
+        return self.refresh(verify_response=True)
+
     def refresh(self, verify_response: bool = True) -> Dict[str, KeyLike]:
         self._lock.acquire()
         if self._refreshing is not None:

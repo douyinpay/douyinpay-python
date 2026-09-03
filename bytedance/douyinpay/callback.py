@@ -8,7 +8,7 @@ from typing import Any, Dict, Generic, Optional, TypeVar, Union
 from .config import CertificateProvider, KeyLike
 from .constants import DEFAULT_MAX_CLOCK_OFFSET, ERR_CALLBACK_ALGORITHM, SignType
 from .crypto.aes import aes_decrypt
-from .errors import DouYinPayError
+from .errors import DouYinPayError, DouYinPayCertificateSerialNotFound
 from .signer import verify_response
 
 T = TypeVar("T")
@@ -83,22 +83,42 @@ class CallbackHandler:
             else getattr(config, "max_clock_offset", DEFAULT_MAX_CLOCK_OFFSET),
         )
 
-    def parse(self, headers: Dict[str, Any], body: Union[str, bytes]) -> NotifyRequest:
-        raw_body = body.decode("utf-8") if isinstance(body, bytes) else body
+    def _current_certs(self) -> Dict[str, KeyLike]:
         current_certs = dict(self.certs)
         if self.certificate_provider:
             try:
                 current_certs.update(self.certificate_provider.get_certs())
             except Exception:
                 pass
-        verify_response(
-            headers,
-            raw_body,
-            current_certs,
-            self.sign_type,
-            None,
-            self.max_clock_offset,
-        )
+        return current_certs
+
+    def _verify(self, headers: Dict[str, Any], raw_body: str) -> None:
+        try:
+            verify_response(
+                headers,
+                raw_body,
+                self._current_certs(),
+                self.sign_type,
+                None,
+                self.max_clock_offset,
+            )
+        except DouYinPayCertificateSerialNotFound as exc:
+            refresh_for_serial = getattr(self.certificate_provider, "refresh_for_serial", None)
+            if refresh_for_serial is None:
+                raise
+            refresh_for_serial(exc.serial)
+            verify_response(
+                headers,
+                raw_body,
+                self._current_certs(),
+                self.sign_type,
+                None,
+                self.max_clock_offset,
+            )
+
+    def parse(self, headers: Dict[str, Any], body: Union[str, bytes]) -> NotifyRequest:
+        raw_body = body.decode("utf-8") if isinstance(body, bytes) else body
+        self._verify(headers, raw_body)
         notify_dict = json.loads(raw_body)
         resource_dict = notify_dict.get("resource")
         if not resource_dict:

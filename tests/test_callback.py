@@ -188,3 +188,35 @@ def test_parse_callback_unsupported_algorithm():
             encrypt_key=AES_KEY,
             certs={PLAT_SERIAL: CERT_PEM},
         )
+
+
+class _OnDemandCertificateProvider:
+    """初始无证书；refresh_for_serial 被调用时注入平台证书，模拟回调验签按需刷新。"""
+
+    def __init__(self, certs_after_refresh):
+        self._certs = {}
+        self._certs_after_refresh = certs_after_refresh
+        self.refreshed_serials = []
+
+    def get_certs(self):
+        return dict(self._certs)
+
+    def refresh_for_serial(self, serial):
+        self.refreshed_serials.append(serial)
+        self._certs = dict(self._certs_after_refresh)
+        return dict(self._certs)
+
+
+def test_callback_verify_refreshes_on_unknown_serial():
+    body, _ = _make_encrypted_notify_body()
+    headers = _make_callback(body)
+    provider = _OnDemandCertificateProvider({PLAT_SERIAL: CERT_PEM})
+    handler = CallbackHandler(
+        encrypt_key=AES_KEY,
+        certs={},
+        certificate_provider=provider,
+        sign_type=SignType.RSA,
+    )
+    result = handler.parse(headers, body)
+    assert provider.refreshed_serials == [PLAT_SERIAL]
+    assert result.content["out_trade_no"] == "T001"

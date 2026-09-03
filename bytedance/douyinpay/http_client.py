@@ -9,7 +9,7 @@ import httpx
 
 from .config import DouYinPayConfig, validate_config
 from .constants import Headers
-from .errors import DouYinPayAPIError
+from .errors import DouYinPayAPIError, DouYinPayCertificateSerialNotFound
 from .version import USER_AGENT, build_sdk_agent
 from .utils.http import normalize_base_url, join_url, append_query, request_target_from_url, buffer_to_str
 from .crypto.rsa import load_rsa_private_key
@@ -60,6 +60,25 @@ class HttpClient:
             except Exception:
                 pass
         return certs
+
+    def _verify_response(self, resp_headers: Dict[str, Any], body: bytes) -> None:
+        certs = self._get_current_certs()
+        try:
+            verify_response(
+                resp_headers, body, certs,
+                self._sign_type, self._encrypt_type, self.config.max_clock_offset,
+            )
+        except DouYinPayCertificateSerialNotFound as exc:
+            provider = self.config.certificate_provider
+            refresh_for_serial = getattr(provider, "refresh_for_serial", None)
+            if refresh_for_serial is None:
+                raise
+            refresh_for_serial(exc.serial)
+            certs = self._get_current_certs()
+            verify_response(
+                resp_headers, body, certs,
+                self._sign_type, self._encrypt_type, self.config.max_clock_offset,
+            )
 
     def request(
         self,
@@ -139,16 +158,7 @@ class HttpClient:
                 response_body=resp.text,
             )
         if not skip_verify:
-            resp_headers = dict(resp.headers)
-            current_certs = self._get_current_certs()
-            verify_response(
-                resp_headers,
-                resp.content,
-                current_certs,
-                self._sign_type,
-                self._encrypt_type,
-                self.config.max_clock_offset,
-            )
+            self._verify_response(dict(resp.headers), resp.content)
         if response_type == "content":
             data: Any = resp.content
         elif response_type == "text":

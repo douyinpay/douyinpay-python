@@ -13,6 +13,12 @@ class DouYinPaySignatureError(DouYinPayError):
     pass
 
 
+class DouYinPayCertificateSerialNotFound(DouYinPaySignatureError):
+    def __init__(self, serial: str, message: str = ""):
+        super().__init__(message or f"platform certificate serial {serial} not found")
+        self.serial = serial
+
+
 class DouYinPayAPIError(DouYinPayError):
     def __init__(self, message: str, status_code: int = 0, response_body: str = ""):
         super().__init__(message)

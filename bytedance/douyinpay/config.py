@@ -34,6 +34,13 @@ class CertificateProvider(ABC):
 
     def refresh(self) -> Dict[str, KeyLike]: ...
 
+    def refresh_for_serial(self, serial: str) -> Dict[str, KeyLike]:
+        certs = self.get_certs()
+        if serial and serial in certs:
+            return certs
+        refreshed = self.refresh()
+        return refreshed if refreshed else certs
+
     def start(self) -> None: ...
 
     def stop(self) -> None: ...
