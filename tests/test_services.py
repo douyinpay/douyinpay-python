@@ -115,6 +115,45 @@ def test_service_get_uses_merchant_supplied_query():
     }
 
 
+def test_service_post_accepts_partner_supplied_path_and_payload():
+    service = Service(FakeClient())
+
+    call = service.post(
+        "/v1/trade/partner/transactions/native",
+        json={
+            "sp_mchid": "sp-mch-1",
+            "sp_appid": "sp-app-1",
+            "sub_mchid": "sub-mch-1",
+            "sub_appid": "sub-app-1",
+            "out_trade_no": "order-1",
+        },
+    )
+
+    assert call == {
+        "method": "POST",
+        "path": "/v1/trade/partner/transactions/native",
+        "json": {
+            "sp_mchid": "sp-mch-1",
+            "sp_appid": "sp-app-1",
+            "sub_mchid": "sub-mch-1",
+            "sub_appid": "sub-app-1",
+            "out_trade_no": "order-1",
+        },
+        "params": None,
+    }
+
+
+def test_service_path_escapes_template_params_for_any_api_path():
+    service = Service(FakeClient())
+
+    path_client = service.path(
+        "/v1/trade/partner/transactions/out-trade-no/{out_trade_no}",
+        out_trade_no="partner/order 1",
+    )
+
+    assert path_client.path == "/v1/trade/partner/transactions/out-trade-no/partner%2Forder%201"
+
+
 def test_services_entry_is_thin_generic_service():
     services = DouyinPayServices(FakeClient())
 
@@ -129,6 +168,7 @@ def test_services_entry_is_thin_generic_service():
     assert not hasattr(services, "native_pay")
     assert not hasattr(services, "refund")
     assert not hasattr(services, "payscore")
+    assert not hasattr(services, "partnerpay")
 
 
 def test_missing_path_param_raises_value_error():

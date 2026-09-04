@@ -6,7 +6,13 @@ from urllib.parse import quote
 
 
 class Service:
-    """Thin generic API wrapper over DouyinPayClient."""
+    """Thin generic API wrapper over DouyinPayClient.
+
+    The SDK does not own product-specific request or response models here.
+    Callers provide the official API path and parameters for merchant or
+    partner-platform APIs, while this wrapper handles path escaping and
+    delegates signing, sending, and verification to the underlying client.
+    """
 
     def __init__(self, client):
         self.client = client
@@ -76,5 +82,12 @@ class Service:
     ):
         return self.request("DELETE", path, params=params, path_params=path_params, **kwargs)
 
-    def path(self, path: str):
-        return self.client.path(path)
+    def path(
+        self,
+        path: str,
+        path_params: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ):
+        merged_params = dict(path_params or {})
+        merged_params.update(kwargs)
+        return self.client.path(self._path(path, **merged_params))
