@@ -31,3 +31,9 @@ htmlcov/
 .vscode/
 .mypy_cache/
 .ruff_cache/
+# Added by CJADK
+.cjadk/
+# Added by CJADK
+log/app.log
+# Added by CJADK
+.claude/
