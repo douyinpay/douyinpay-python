@@ -5,6 +5,16 @@ All notable changes to `douyinpay-python` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-09-07
+
+### Changed
+
+- Add PyPI project links for Homepage, Repository, and Issues.
+
+### Fixed
+
+- Close the temporary HTTP client used during platform certificate download.
+
 ## [1.0.0] - 2026-08-26
 
 ### Added

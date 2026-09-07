@@ -38,7 +38,10 @@ def download_platform_certificates(
         certs=bootstrap_certs if bootstrap_certs is not None else config.certs,
     )
     client = HttpClient(temp_config)
-    resp = client.get(GET_PLATFORM_CERTS_PATH, skip_verify=not verify_response)
+    try:
+        resp = client.get(GET_PLATFORM_CERTS_PATH, skip_verify=not verify_response)
+    finally:
+        client.close()
     if not isinstance(resp.data, dict):
         raise DouYinPayCertificateError(f"unexpected response type: {type(resp.data)}")
     certificates: List[DownloadedCertificate] = []

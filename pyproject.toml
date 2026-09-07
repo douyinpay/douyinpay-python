@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bytedance.douyinpay"
-version = "1.0.0"
+version = "1.0.1"
 description = "Douyin Pay Python Server SDK - 抖音支付服务端 Python SDK，支持 RSA 签名和 AES 加密"
 readme = "README.md"
 requires-python = ">=3.8,<4.0"
@@ -30,6 +30,11 @@ dependencies = [
     "httpx>=0.25.0,<1.0.0",
     "cryptography>=41.0.0,<46.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/douyinpay/douyinpay-python#readme"
+Repository = "https://github.com/douyinpay/douyinpay-python"
+Issues = "https://github.com/douyinpay/douyinpay-python/issues"
 
 [project.optional-dependencies]
 dev = [

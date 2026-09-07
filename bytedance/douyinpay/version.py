@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ByteDance Ltd. and/or its affiliates
 # SPDX-License-Identifier: Apache-2.0
 
-SDK_VERSION = "1.0.0"
+SDK_VERSION = "1.0.1"
 SDK_LANG = "PYTHON"
 HTTP_CLIENT_NAME = "httpx"
 USER_AGENT = f"douyinpay-python/{SDK_VERSION} {HTTP_CLIENT_NAME}"
