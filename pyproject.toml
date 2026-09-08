@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bytedance.douyinpay"
+version = "1.0.2"
+description = "Douyin Pay Python Server SDK - 抖音支付服务端 Python SDK，支持 RSA 签名和 AES 加密"
+readme = "README.md"
+requires-python = ">=3.8,<4.0"
+license = "Apache-2.0"
+authors = [
+    { name = "douyinpay" }
+]
+keywords = ["douyinpay", "抖音支付", "payment", "sdk", "rsa", "aes"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "httpx>=0.25.0,<1.0.0",
+    "cryptography>=41.0.0,<46.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/douyinpay/douyinpay-python#readme"
+Repository = "https://github.com/douyinpay/douyinpay-python"
+Issues = "https://github.com/douyinpay/douyinpay-python/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0,<9.0",
+    "pytest-httpx>=0.21,<1.0",
+    "pytest-cov>=4.0,<7.0",
+    "ruff>=0.1.0,<1.0.0",
+    "mypy>=1.5,<2.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["bytedance", "bytedance.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=bytedance.douyinpay --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
